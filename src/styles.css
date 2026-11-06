@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+/* Duly design tokens (from the mockup). Use these, not raw hex values. */
+@theme {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Instrument Sans", system-ui, sans-serif;
+
+  --color-ground: #f6f3ec;
+  --color-ink: #1b1f1a;
+  --color-ink-2: #4a5048;
+  --color-primary: #1f5c45;
+  --color-primary-ink: #ffffff;
+  --color-tint: #e3eee7;
+  --color-alert: #8a3b10;
+  --color-alert-bg: #fbebdd;
+  --color-line: #e2ddd2;
+  --color-card: #ffffff;
+  --color-pro: #1b2a23;
+  --color-pro-ink: #dfe8e2;
+
+  --radius-card: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 44px minimum touch targets */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.btn:disabled {
+  opacity: 0.5;
+}
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+.btn-ghost {
+  border: 1px solid var(--color-line);
+  background: var(--color-card);
+  color: var(--color-ink);
+}
+.field {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-card);
+  font: inherit;
+  color: inherit;
+}
+.field:focus,
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+}
