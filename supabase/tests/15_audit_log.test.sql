@@ -13,15 +13,15 @@ begin
   perform tests.eq((select actor from public.audit_log where brief_id = v_brief and table_name = 'briefs' and op = 'INSERT'), (f ->> 'buyer')::uuid, 'with the buyer as the actor');
   perform tests.ok(exists (select 1 from public.audit_log where brief_id = v_brief and summary = 'Brief version 1 locked' and actor = (f ->> 'buyer')::uuid), 'locking the brief is logged against the person who locked it');
   perform tests.ok(exists (select 1 from public.audit_log where quote_id = v_quote and table_name = 'quotes' and op = 'INSERT' and (f ->> 'vendor_org')::uuid = any (org_ids) and (f ->> 'buyer_org')::uuid = any (org_ids)), 'the invitation is logged against both organisations');
-  perform tests.ok(exists (select 1 from public.audit_log where quote_id = v_quote and summary = 'Quotes status invited to submitted' and actor = (f ->> 'vendor')::uuid), 'the vendor submitting is logged with the vendor as actor');
-  perform tests.ok(exists (select 1 from public.audit_log where quote_id = v_quote and summary like 'Quotes status submitted to accepted' and actor = (f ->> 'buyer')::uuid), 'the buyer accepting is logged');
+  perform tests.ok(exists (select 1 from public.audit_log where quote_id = v_quote and summary = 'Quote status invited to submitted' and actor = (f ->> 'vendor')::uuid), 'the vendor submitting is logged with the vendor as actor');
+  perform tests.ok(exists (select 1 from public.audit_log where quote_id = v_quote and summary like 'Quote status submitted to accepted' and actor = (f ->> 'buyer')::uuid), 'the buyer accepting is logged');
   perform tests.ok(exists (select 1 from public.audit_log where job_id = v_job and table_name = 'jobs' and op = 'INSERT'), 'the job being created is logged');
   perform tests.ok(exists (select 1 from public.audit_log where job_id = v_job and table_name = 'job_assignments' and actor = (f ->> 'vendor')::uuid), 'the vendor assigning crew is logged');
   perform tests.eq((select count(*) from public.audit_log where job_id = v_job and table_name = 'evidence'), 2::bigint, 'each photo is logged');
   perform tests.eq((select actor from public.audit_log where job_id = v_job and table_name = 'evidence' limit 1), (f ->> 'crew')::uuid, 'with the crew member who uploaded it');
   perform tests.ok(exists (select 1 from public.audit_log where job_id = v_job and summary = 'Standard ticked by crew'), 'ticks are logged');
   perform tests.eq((select count(*) from public.audit_log where job_id = v_job and summary = 'Standard marked met' and actor = (f ->> 'buyer')::uuid), 3::bigint, 'each verdict is logged with the client who gave it');
-  perform tests.ok(exists (select 1 from public.audit_log where job_id = v_job and summary like 'Jobs status % to completed'), 'the job moving to completed is logged');
+  perform tests.ok(exists (select 1 from public.audit_log where job_id = v_job and summary like 'Job status % to completed'), 'the job moving to completed is logged');
   perform tests.ok(exists (select 1 from public.audit_log where job_id = v_job and table_name = 'payments'), 'the payment lines created on approval are logged');
   perform tests.ok(not exists (select 1 from public.audit_log where changes ? 'updated_at'), 'updated_at noise is left out');
 
@@ -90,7 +90,7 @@ begin
   perform tests.as_user((f ->> 'admin')::uuid);
   update public.issues set status = 'vendor_fix', resolution = 'Vendor to redo' where id = v_issue;
   perform tests.ok(exists (select 1 from public.audit_log where job_id = v_job and table_name = 'issues' and op = 'INSERT' and actor = (f ->> 'buyer')::uuid), 'raising an issue is logged against the person who raised it');
-  perform tests.ok(exists (select 1 from public.audit_log where table_name = 'issues' and summary = 'Issues status open to vendor_fix' and actor = (f ->> 'admin')::uuid), 'Duly changing its status is logged against Duly');
+  perform tests.ok(exists (select 1 from public.audit_log where table_name = 'issues' and summary = 'Issue status open to vendor_fix' and actor = (f ->> 'admin')::uuid), 'Duly changing its status is logged against Duly');
   perform tests.eq((select changes -> 'resolution' ->> 'to' from public.audit_log where table_name = 'issues' and row_id = v_issue::text and op = 'UPDATE' and changes ? 'resolution'), 'Vendor to redo', 'including what was decided');
 
   -- AI drafts: who approved and when, never the pasted text or the drafted brief.

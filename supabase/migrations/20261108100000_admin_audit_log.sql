@@ -58,7 +58,7 @@ declare
   j jsonb := coalesce(p_new, p_old);
   v_brief uuid; v_quote uuid; v_job uuid; v_row text; v_orgs uuid[] := '{}';
   v_buyer uuid; v_vendor uuid; v_org uuid; v_contract uuid;
-  v_changes jsonb := '{}'::jsonb; v_summary text; v_kind text; k text;
+  v_changes jsonb := '{}'::jsonb; v_summary text; v_kind text; k text; v_noun text;
 begin
   -- Which brief, quote and job this belongs to.
   v_brief := nullif(coalesce(j ->> 'brief_id', case when p_table = 'briefs' then j ->> 'id' end), '')::uuid;
@@ -97,10 +97,15 @@ begin
   end if;
 
   v_kind := coalesce(j ->> 'kind', '');
-  v_summary := initcap(replace(p_table, '_', ' ')) || case p_op when 'INSERT' then ' created' when 'DELETE' then ' deleted' else ' updated' end;
+  v_noun := case p_table
+    when 'briefs' then 'Brief' when 'brief_versions' then 'Brief version' when 'quotes' then 'Quote' when 'contracts' then 'Contract'
+    when 'jobs' then 'Job' when 'job_assignments' then 'Crew assignment' when 'evidence' then 'Photo' when 'area_results' then 'Standard'
+    when 'issues' then 'Issue' when 'payments' then 'Payment' when 'verification_claims' then 'Verification claim'
+    when 'approval_queue' then 'AI draft' else initcap(replace(p_table, '_', ' ')) end;
+  v_summary := v_noun || case p_op when 'INSERT' then ' created' when 'DELETE' then ' deleted' else ' updated' end;
   if p_op = 'UPDATE' then
     if v_changes ? 'status' then
-      v_summary := initcap(replace(p_table, '_', ' ')) || ' status ' || coalesce(p_old ->> 'status', 'none') || ' to ' || coalesce(p_new ->> 'status', 'none');
+      v_summary := v_noun || ' status ' || coalesce(p_old ->> 'status', 'none') || ' to ' || coalesce(p_new ->> 'status', 'none');
     elsif v_changes ? 'verdict' then
       v_summary := 'Standard marked ' || replace(coalesce(p_new ->> 'verdict', 'cleared'), '_', ' ');
     elsif v_changes ? 'locked_at' then
