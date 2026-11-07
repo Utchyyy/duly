@@ -14,6 +14,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BusinessRouteImport } from './routes/business'
 import { Route as CrewRouteImport } from './routes/crew'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminIssuesRouteImport } from './routes/admin.issues'
@@ -37,6 +38,7 @@ import { Route as ProShiftsRouteImport } from './routes/pro.shifts'
 import { Route as ProTeamRouteImport } from './routes/pro.team'
 import { Route as ProVerificationRouteImport } from './routes/pro.verification'
 import { Route as SitesNewRouteImport } from './routes/sites.new'
+import { Route as ApiNotificationsSendRouteImport } from './routes/api.notifications.send'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -61,6 +63,11 @@ const BusinessRoute = BusinessRouteImport.update({
 const CrewRoute = CrewRouteImport.update({
   id: '/crew',
   path: '/crew',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProRoute = ProRouteImport.update({
@@ -178,6 +185,11 @@ const SitesNewRoute = SitesNewRouteImport.update({
   path: '/sites/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiNotificationsSendRoute = ApiNotificationsSendRouteImport.update({
+  id: '/api/notifications/send',
+  path: '/api/notifications/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -185,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/business': typeof BusinessRoute
   '/crew': typeof CrewRouteWithChildren
+  '/notifications': typeof NotificationsRoute
   '/pro': typeof ProRouteWithChildren
   '/admin/issues': typeof AdminIssuesRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -208,11 +221,13 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/crew/': typeof CrewIndexRoute
   '/pro/': typeof ProIndexRoute
+  '/api/notifications/send': typeof ApiNotificationsSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/business': typeof BusinessRoute
+  '/notifications': typeof NotificationsRoute
   '/admin/issues': typeof AdminIssuesRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/people': typeof AdminPeopleRoute
@@ -235,6 +250,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/crew': typeof CrewIndexRoute
   '/pro': typeof ProIndexRoute
+  '/api/notifications/send': typeof ApiNotificationsSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -243,6 +259,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/business': typeof BusinessRoute
   '/crew': typeof CrewRouteWithChildren
+  '/notifications': typeof NotificationsRoute
   '/pro': typeof ProRouteWithChildren
   '/admin/issues': typeof AdminIssuesRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -266,6 +283,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/crew/': typeof CrewIndexRoute
   '/pro/': typeof ProIndexRoute
+  '/api/notifications/send': typeof ApiNotificationsSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -275,6 +293,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/business'
     | '/crew'
+    | '/notifications'
     | '/pro'
     | '/admin/issues'
     | '/admin/payments'
@@ -298,11 +317,13 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/crew/'
     | '/pro/'
+    | '/api/notifications/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/account'
     | '/business'
+    | '/notifications'
     | '/admin/issues'
     | '/admin/payments'
     | '/admin/people'
@@ -325,6 +346,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/crew'
     | '/pro'
+    | '/api/notifications/send'
   id:
     | '__root__'
     | '/'
@@ -332,6 +354,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/business'
     | '/crew'
+    | '/notifications'
     | '/pro'
     | '/admin/issues'
     | '/admin/payments'
@@ -355,6 +378,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/crew/'
     | '/pro/'
+    | '/api/notifications/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -363,12 +387,14 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   BusinessRoute: typeof BusinessRoute
   CrewRoute: typeof CrewRouteWithChildren
+  NotificationsRoute: typeof NotificationsRoute
   ProRoute: typeof ProRouteWithChildren
   BriefsBriefIdRoute: typeof BriefsBriefIdRoute
   DraftsItemIdRoute: typeof DraftsItemIdRoute
   DraftsNewRoute: typeof DraftsNewRoute
   JobsJobIdRoute: typeof JobsJobIdRoute
   SitesNewRoute: typeof SitesNewRoute
+  ApiNotificationsSendRoute: typeof ApiNotificationsSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -406,6 +432,13 @@ declare module '@tanstack/react-router' {
       path: '/crew'
       fullPath: '/crew'
       preLoaderRoute: typeof CrewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pro': {
@@ -569,6 +602,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/notifications/send': {
+      id: '/api/notifications/send'
+      path: '/api/notifications/send'
+      fullPath: '/api/notifications/send'
+      preLoaderRoute: typeof ApiNotificationsSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -636,12 +676,14 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   BusinessRoute: BusinessRoute,
   CrewRoute: CrewRouteWithChildren,
+  NotificationsRoute: NotificationsRoute,
   ProRoute: ProRouteWithChildren,
   BriefsBriefIdRoute: BriefsBriefIdRoute,
   DraftsItemIdRoute: DraftsItemIdRoute,
   DraftsNewRoute: DraftsNewRoute,
   JobsJobIdRoute: JobsJobIdRoute,
   SitesNewRoute: SitesNewRoute,
+  ApiNotificationsSendRoute: ApiNotificationsSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

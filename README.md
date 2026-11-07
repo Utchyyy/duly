@@ -28,6 +28,15 @@ Buyers can paste a description, or upload a specification, tender or photo, and 
 - Before relying on it, run `ANTHROPIC_API_KEY=… pnpm draft:smoke` once. It makes one real model call (a few cents) with made-up text containing a price, a door code and a planted instruction, and checks none of them reach the draft.
 - Drafts are limited to 10 waiting and 25 a day per organisation, enforced in the database.
 
+## Notifications
+
+People are told when something needs them: a quote asked for or arrived, a clean to check, a cleaner assigned, a problem raised, a shift offered, a payment due, a clean about to start or running late.
+
+- **In the app:** the bell and `/notifications`, instant. Created in SQL, by triggers on the real events and by `private.notify_due_items()` for things that happen because time passed (reminders, lateness, deadlines, payments due). That scan runs every five minutes through `pg_cron` where the extension exists.
+- **By email:** each notification is also queued for email unless the person has switched that off (Account, Notifications). A protected endpoint, `POST /api/notifications/send`, sends the queue through Resend. It needs `CRON_SECRET`, so only a scheduler can call it: `.github/workflows/notifications.yml` does that every five minutes once the `APP_URL` and `CRON_SECRET` repository secrets are set. See `.env.example` for the server settings. Swapping provider means replacing `src/lib/notifications/resend.server.ts`.
+- **What is never said:** staff pay, amounts, street addresses, access notes, or anything about a safeguarding report. Email goes through a third party, so text says what happened and links into the app. The SQL tests check this.
+- **A notification can never block the action it reports:** the trigger functions catch their own errors.
+
 ## Tests
 
 `pnpm test:unit` runs the TypeScript unit tests (the drafting pipeline, with a fake model and a fake database). `pnpm test:db` applies every migration to a throwaway Postgres and runs `supabase/tests/*.test.sql`: the booking-to-payment workflow, escrow and disputes, recurring visits, who can see or change what (RLS, anon, protected fields), WFX shifts and DBS, evidence storage, and per-segment money rules (invoice terms, hospitality, policy-driven releases and fee). It needs `psql` and a Postgres superuser via the usual `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`, and it drops and recreates a database called `duly_test`. CI runs both, plus lint, typecheck and build.

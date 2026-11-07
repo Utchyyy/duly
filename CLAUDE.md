@@ -20,7 +20,8 @@ Duly is a verified cleaning marketplace. Surfaces: buyer app `/`, Duly for Busin
   - Matching and pricing: `rank_vendors`, `price_quote`, `rank_candidates`, `demand_by_town`, `corridor_suggestions`
   - Workflow: `create_buyer_org`, `submit_quote`, `decline_quote`, `accept_quote`, `schedule_visits`, `check_in`, `complete_job`, `approve_job`, `mark_payment_paid`
   - WFX shifts: `offer_shift`, `respond_to_shift` (WIIx score computed by trigger from the four ratings)
-  - People: `add_member`, `org_member_emails`
+  - People: `add_member`, `org_member_emails`, `mark_notifications_read`
+  - Email worker (service role only, never callable by people): `worker_claim_notification_emails`, `worker_finish_notification_email`
   - AI drafts: `approve_brief_draft`, `reject_brief_draft` (the model's output sits in `approval_queue` until a person approves it)
 - Triggers guard what direct writes can't be trusted with: job status/value (`protect_job_fields`), verdicts (`protect_area_result_fields`), verification tier (`protect_org_fields`), evidence geofence, issue SLA and dispute holds.
 
@@ -28,6 +29,8 @@ Duly is a verified cleaning marketplace. Surfaces: buyer app `/`, Duly for Busin
 Brief (draft → locked version) → client invites ranked vendors → vendor submits (price computed by `price_quote`) → client accepts with a start time (creates contract, job, escrow line for escrow segments) → vendor assigns crew → crew checks in (geofence checked in SQL), ticks standards, uploads after-photos to `evidence/<job_id>/<area_id>/…` → `complete_job` → client marks each standard met/not met → `approve_job` schedules releases from `policies`, or a reported issue holds the job as `disputed` → Duly records bank transfers with `mark_payment_paid` (Stripe to replace) → `recompute_vendor_score` from real jobs only. Client charges: escrow segments get an `escrow_hold` line per clean; monthly plans get a `direct_debit` line per month (due at the start of the month) and invoice-terms clients an `invoice` line (due month end + payment terms), both kept in step with booked visits by `refresh_client_charges`.
 
 AI drafting (optional): a buyer pastes text or uploads a document → a server function (`src/lib/drafting`, as the signed-in person) asks the model for a draft → a pending row in `approval_queue` → an owner or approver reviews it → `approve_brief_draft` creates the site and an unlocked draft brief → the person edits, locks and asks for quotes as usual. The schema has no price or vendor field, and limits (10 pending, 25 a day per organisation) are enforced by trigger. `ANTHROPIC_API_KEY` is server-only.
+
+Notifications: created only in SQL (triggers on quotes, jobs, assignments, issues, shifts, DBS and verification, plus the scheduled `private.notify_due_items()`), into `notifications` (the in-app inbox, which doubles as the email outbox). They never carry staff pay, amounts, street addresses, access notes or safeguarding detail, they never block the action they report, and people can only read them and mark them read. Email is sent by `POST /api/notifications/send` (needs `CRON_SECRET`), which uses the service role; those secrets are server-only.
 
 ## Auth
 Email one-time code (Supabase OTP). Buyers and operatives can sign up; vendor staff and admins are invite-only (`shouldCreateUser: false`). Roles come from `memberships`.

@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useAuth } from '#/lib/auth'
+import { NotificationBell } from './Notifications'
 
 function Wordmark({ suffix, light }: { suffix?: string; light?: boolean }) {
   return (
@@ -15,9 +16,12 @@ function AccountButton({ light }: { light?: boolean }) {
   const { session } = useAuth()
   if (!session) return null
   return (
-    <Link to="/account" className={`inline-flex min-h-[44px] items-center text-sm font-medium ${light ? 'text-pro-ink' : 'text-ink-2'}`}>
-      Account
-    </Link>
+    <span className="inline-flex items-center gap-1">
+      <NotificationBell light={light} />
+      <Link to="/account" className={`inline-flex min-h-[44px] items-center text-sm font-medium ${light ? 'text-pro-ink' : 'text-ink-2'}`}>
+        Account
+      </Link>
+    </span>
   )
 }
 

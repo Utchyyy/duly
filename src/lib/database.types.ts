@@ -722,6 +722,92 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          email_enabled: boolean
+          email_muted: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email_enabled?: boolean
+          email_muted?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email_enabled?: boolean
+          email_muted?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          dedupe_key: string | null
+          email_attempts: number
+          email_error: string | null
+          email_next_at: string | null
+          email_sent_at: string | null
+          email_status: string
+          event: string
+          id: string
+          link: string | null
+          org_id: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          category: string
+          created_at?: string
+          dedupe_key?: string | null
+          email_attempts?: number
+          email_error?: string | null
+          email_next_at?: string | null
+          email_sent_at?: string | null
+          email_status?: string
+          event: string
+          id?: string
+          link?: string | null
+          org_id?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          dedupe_key?: string | null
+          email_attempts?: number
+          email_error?: string | null
+          email_next_at?: string | null
+          email_sent_at?: string | null
+          email_status?: string
+          event?: string
+          id?: string
+          link?: string | null
+          org_id?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organisations: {
         Row: {
           companies_house_no: string | null
@@ -1584,6 +1670,10 @@ export type Database = {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
       }
+      mark_notifications_read: {
+        Args: { p_ids?: string[] }
+        Returns: number
+      }
       mark_payment_paid: {
         Args: { p_payment: string; p_reference: string }
         Returns: undefined
@@ -1652,6 +1742,22 @@ export type Database = {
       submit_quote: {
         Args: { p_quote: string; p_valid_days?: number }
         Returns: Json
+      }
+      worker_claim_notification_emails: {
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          category: string
+          created_at: string
+          email: string
+          id: string
+          link: string
+          title: string
+        }[]
+      }
+      worker_finish_notification_email: {
+        Args: { p_error?: string; p_id: string; p_sent: boolean }
+        Returns: undefined
       }
     }
     Enums: {
