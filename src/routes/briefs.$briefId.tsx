@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Gate } from '#/components/Gate'
+import { WorkPlanView } from '#/components/WorkPlan'
 import { AppShell, Empty } from '#/components/Shells'
 import { Badge, ErrorNote, Loading, Section } from '#/components/ui'
 import type { Json } from '#/lib/database.types'
@@ -8,6 +9,7 @@ import { day, money, must, useLoad } from '#/lib/format'
 import { hoursLabel, newId, parseSchedule, totalMinutes } from '#/lib/schedule'
 import type { Schedule } from '#/lib/schedule'
 import { supabase } from '#/lib/supabase'
+import { parseLegend, parsePlan } from '#/lib/workplan'
 
 export const Route = createFileRoute('/briefs/$briefId')({
   head: () => ({ meta: [{ title: 'Brief · Duly' }] }),
@@ -38,7 +40,7 @@ function Brief() {
         .eq('id', briefId)
         .single(),
     )
-    const [version, quotes, library, contracts] = await Promise.all([
+    const [version, quotes, library, contracts, schedules] = await Promise.all([
       db.from('brief_versions').select('version, schedule, notes, locked_at, preferred_days, preferred_start').eq('brief_id', briefId).eq('version', brief.current_version).single(),
       db
         .from('quotes')
@@ -47,8 +49,10 @@ function Brief() {
         .order('created_at'),
       db.from('standards_library').select('id, segment, area_type, text'),
       db.from('contracts').select('id, status, brief_version, billing, vendor:organisations!contracts_vendor_org_id_fkey(name)').eq('brief_id', briefId),
+      // Schedules the vendors have sent (the database only lets the client see sent or locked ones).
+      db.from('work_schedules').select('quote_id, status, plan, legend').eq('brief_id', briefId),
     ])
-    return { brief, version: must(version), quotes: must(quotes), library: must(library), contracts: must(contracts) }
+    return { brief, version: must(version), quotes: must(quotes), library: must(library), contracts: must(contracts), schedules: must(schedules) }
   }, [briefId])
 
   if (error) return <ErrorNote message={error} />
@@ -90,6 +94,7 @@ function Brief() {
             quotes={data.quotes.filter((q) => q.brief_version === version.version)}
             currency={currency}
             hasPattern={Boolean(version.preferred_days?.length && version.preferred_start)}
+            schedules={data.schedules}
           />
           <NewVersion briefId={brief.id} version={version.version} schedule={version.schedule} onDone={reload} />
         </>
@@ -543,7 +548,7 @@ function Vendors({
   )
 }
 
-function Quotes({ quotes, currency, hasPattern }: { quotes: QuoteRow[]; currency: string; hasPattern: boolean }) {
+function Quotes({ quotes, currency, hasPattern, schedules }: { quotes: QuoteRow[]; currency: string; hasPattern: boolean; schedules: { quote_id: string; status: string; plan: unknown; legend: unknown }[] }) {
   const navigate = useNavigate()
   const submitted = quotes.filter((q) => q.status === 'submitted' || q.status === 'accepted')
   const tomorrow = new Date(Date.now() + 86400000)
@@ -583,6 +588,15 @@ function Quotes({ quotes, currency, hasPattern }: { quotes: QuoteRow[]; currency
                   </div>
                   <p className="font-display text-2xl">{money(q.total, q.currency || currency)}</p>
                 </div>
+                {schedules.find((x) => x.quote_id === q.id) && (
+                  <details className="mt-1 text-sm">
+                    <summary className="flex min-h-[44px] cursor-pointer items-center font-medium text-primary">
+                      See the work schedule{schedules.find((x) => x.quote_id === q.id)?.status === 'locked' ? ' (locked)' : ''}
+                    </summary>
+                    <p className="mb-2 text-ink-2">How {q.vendor?.name} will clean, area by area and day by day. It does not change the price. When you accept, it locks and you check the work against it.</p>
+                    <WorkPlanView plan={parsePlan(schedules.find((x) => x.quote_id === q.id)?.plan)} legend={parseLegend(schedules.find((x) => x.quote_id === q.id)?.legend)} />
+                  </details>
+                )}
                 <details className="mt-2 text-sm">
                   <summary className="flex min-h-[44px] cursor-pointer items-center font-medium text-primary">See how it's priced</summary>
                   <ul className="space-y-1 text-ink-2">

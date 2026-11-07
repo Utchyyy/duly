@@ -1,12 +1,14 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PhotoStrip, useSignedUrls } from '#/components/Evidence'
+import { WorkPlanView } from '#/components/WorkPlan'
 import type { EvidenceRow } from '#/components/Evidence'
 import { Badge, ErrorNote, Loading, Section, Table } from '#/components/ui'
 import type { Json } from '#/lib/database.types'
 import { label, money, must, useLoad } from '#/lib/format'
 import { parseSchedule, totalMinutes } from '#/lib/schedule'
 import { supabase } from '#/lib/supabase'
+import { parseLegend, parsePlan } from '#/lib/workplan'
 
 export const Route = createFileRoute('/admin/cases/$briefId')({
   component: CaseFile,
@@ -37,7 +39,7 @@ async function loadCase(briefId: string) {
       .eq('id', briefId)
       .single(),
   )
-  const [versions, quotes, contracts, jobs, timeline] = await Promise.all([
+  const [versions, quotes, contracts, jobs, timeline, schedules] = await Promise.all([
     db
       .from('brief_versions')
       .select(
@@ -66,6 +68,7 @@ async function loadCase(briefId: string) {
       .eq('brief_id', briefId)
       .order('scheduled_start'),
     db.rpc('admin_case_timeline', { p_brief: briefId, p_limit: 5000 }),
+    db.from('work_schedules').select('id, quote_id, status, plan, legend, submitted_at, locked_at, vendor:organisations(name)').eq('brief_id', briefId).order('created_at'),
   ])
   const jobRows = must(jobs)
   const jobIds = jobRows.map((j) => j.id)
@@ -88,7 +91,7 @@ async function loadCase(briefId: string) {
     db
       .from('issues')
       .select(
-        'id, job_id, kind, description, status, resolution, created_at, resolved_at, sla_due_at',
+        'id, job_id, kind, description, status, resolution, created_at, resolved_at, sla_due_at, plan_label',
       )
       .in('job_id', jobIds.length ? jobIds : none)
       .order('created_at'),
@@ -114,6 +117,7 @@ async function loadCase(briefId: string) {
     contracts: contractRows,
     jobs: jobRows,
     timeline: must(timeline),
+    schedules: must(schedules),
     evidence: must(evidence) as (EvidenceRow & {
       job_id: string
       taken_at: string | null
@@ -248,6 +252,19 @@ function CaseFile() {
             ))}
           </Table>
         )}
+        {data.schedules.map((w) => (
+          <details key={w.id} className="text-sm">
+            <summary className="flex min-h-[44px] cursor-pointer items-center font-medium text-primary">
+              Work schedule from {w.vendor?.name} ({w.status}
+              {w.submitted_at ? `, sent ${stamp(w.submitted_at)}` : ''}
+              {w.locked_at ? `, locked ${stamp(w.locked_at)}` : ''})
+            </summary>
+            <WorkPlanView
+              plan={parsePlan(w.plan)}
+              legend={parseLegend(w.legend)}
+            />
+          </details>
+        ))}
         {data.contracts.map((c) => (
           <p key={c.id} className="text-sm text-ink-2">
             Contract with {c.vendor?.name} ({c.status}, created{' '}
@@ -368,6 +385,9 @@ function JobRecord({
                 <span className="font-semibold">{label(i.kind)}</span> reported{' '}
                 {stamp(i.created_at)} · <Badge value={i.status} />
               </p>
+              {i.plan_label && (
+                <p className="font-medium">About: {i.plan_label}</p>
+              )}
               <p>{i.description}</p>
               <p className="text-ink-2">
                 Response due {stamp(i.sla_due_at)}

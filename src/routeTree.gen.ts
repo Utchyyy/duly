@@ -41,6 +41,7 @@ import { Route as SitesNewRouteImport } from './routes/sites.new'
 import { Route as AdminCasesIndexRouteImport } from './routes/admin.cases.index'
 import { Route as AdminCasesBriefIdRouteImport } from './routes/admin.cases.$briefId'
 import { Route as ApiNotificationsSendRouteImport } from './routes/api.notifications.send'
+import { Route as ProSchedulesQuoteIdRouteImport } from './routes/pro.schedules.$quoteId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -202,6 +203,11 @@ const ApiNotificationsSendRoute = ApiNotificationsSendRouteImport.update({
   path: '/api/notifications/send',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProSchedulesQuoteIdRoute = ProSchedulesQuoteIdRouteImport.update({
+  id: '/schedules/$quoteId',
+  path: '/schedules/$quoteId',
+  getParentRoute: () => ProRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/pro/': typeof ProIndexRoute
   '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
+  '/pro/schedules/$quoteId': typeof ProSchedulesQuoteIdRoute
   '/admin/cases/': typeof AdminCasesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -266,6 +273,7 @@ export interface FileRoutesByTo {
   '/pro': typeof ProIndexRoute
   '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
+  '/pro/schedules/$quoteId': typeof ProSchedulesQuoteIdRoute
   '/admin/cases': typeof AdminCasesIndexRoute
 }
 export interface FileRoutesById {
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/pro/': typeof ProIndexRoute
   '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
+  '/pro/schedules/$quoteId': typeof ProSchedulesQuoteIdRoute
   '/admin/cases/': typeof AdminCasesIndexRoute
 }
 export interface FileRouteTypes {
@@ -337,6 +346,7 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/cases/$briefId'
     | '/api/notifications/send'
+    | '/pro/schedules/$quoteId'
     | '/admin/cases/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
     | '/pro'
     | '/admin/cases/$briefId'
     | '/api/notifications/send'
+    | '/pro/schedules/$quoteId'
     | '/admin/cases'
   id:
     | '__root__'
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/pro/'
     | '/admin/cases/$briefId'
     | '/api/notifications/send'
+    | '/pro/schedules/$quoteId'
     | '/admin/cases/'
   fileRoutesById: FileRoutesById
 }
@@ -647,6 +659,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNotificationsSendRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pro/schedules/$quoteId': {
+      id: '/pro/schedules/$quoteId'
+      path: '/schedules/$quoteId'
+      fullPath: '/pro/schedules/$quoteId'
+      preLoaderRoute: typeof ProSchedulesQuoteIdRouteImport
+      parentRoute: typeof ProRoute
+    }
   }
 }
 
@@ -697,6 +716,7 @@ interface ProRouteChildren {
   ProTeamRoute: typeof ProTeamRoute
   ProVerificationRoute: typeof ProVerificationRoute
   ProIndexRoute: typeof ProIndexRoute
+  ProSchedulesQuoteIdRoute: typeof ProSchedulesQuoteIdRoute
 }
 
 const ProRouteChildren: ProRouteChildren = {
@@ -708,6 +728,7 @@ const ProRouteChildren: ProRouteChildren = {
   ProTeamRoute: ProTeamRoute,
   ProVerificationRoute: ProVerificationRoute,
   ProIndexRoute: ProIndexRoute,
+  ProSchedulesQuoteIdRoute: ProSchedulesQuoteIdRoute,
 }
 
 const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)

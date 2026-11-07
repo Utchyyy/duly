@@ -10,6 +10,8 @@ import { must, position, useLoad, when } from '#/lib/format'
 import { parseSchedule } from '#/lib/schedule'
 import type { Area } from '#/lib/schedule'
 import { supabase } from '#/lib/supabase'
+import { DAY_FULL, METHOD_LABEL, dayOf, parsePlan, workForDay } from '#/lib/workplan'
+import type { Plan } from '#/lib/workplan'
 
 export const Route = createFileRoute('/crew/$jobId')({ component: JobSheet })
 
@@ -20,15 +22,16 @@ function JobSheet() {
     const job = must(
       await db
         .from('jobs')
-        .select('id, status, scheduled_start, scheduled_end, brief_id, brief_version, site:sites(name, address_line1, town, postcode, access_notes)')
+        .select('id, status, scheduled_start, scheduled_end, brief_id, brief_version, quote_id, site:sites(name, address_line1, town, postcode, access_notes)')
         .eq('id', jobId)
         .single(),
     )
-    const [version, evidence, results, events] = await Promise.all([
+    const [version, evidence, results, events, workSchedule] = await Promise.all([
       db.from('brief_versions').select('schedule, notes').eq('brief_id', job.brief_id).eq('version', job.brief_version).single(),
       db.from('evidence').select('id, area_id, kind, storage_path, within_geofence, created_at').eq('job_id', jobId).order('created_at'),
       db.from('area_results').select('area_id, standard_id, done_by_operative, verdict').eq('job_id', jobId),
       db.from('job_events').select('kind, at, within_geofence, data').eq('job_id', jobId).eq('kind', 'check_in').order('at'),
+      job.quote_id ? db.from('work_schedules').select('plan, legend').eq('quote_id', job.quote_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ])
     return {
       job,
@@ -37,6 +40,8 @@ function JobSheet() {
       evidence: must(evidence) as EvidenceRow[],
       results: must(results),
       checkIn: must(events)[0] ?? null,
+      // Not an error if there is none: older jobs have no work schedule.
+      plan: workSchedule.error || !workSchedule.data ? null : parsePlan(workSchedule.data.plan),
     }
   }, [jobId])
   const urls = useSignedUrls(data?.evidence)
@@ -113,7 +118,7 @@ function JobSheet() {
   return (
     <div className="space-y-6 pb-24">
       <div>
-        <Link to="/crew" className="text-sm font-medium text-primary">
+        <Link to="/crew" className="link-action text-sm font-medium text-primary">
           ← Your jobs
         </Link>
         <div className="mt-2 flex items-center gap-3">
@@ -129,7 +134,7 @@ function JobSheet() {
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.site.postcode)}`}
             target="_blank"
             rel="noreferrer"
-            className="mt-1 inline-block text-sm font-semibold text-primary"
+            className="link-action text-sm font-semibold text-primary"
           >
             Directions
           </a>
@@ -152,6 +157,8 @@ function JobSheet() {
           {busy ? 'Checking in…' : "I've arrived: check in"}
         </button>
       )}
+
+      {data.plan && <TodaysWork plan={data.plan} start={job.scheduled_start} />}
 
       {(working || !beforeStart) && (
         <>
@@ -314,5 +321,35 @@ function AreaCard({
       {note && <p className="text-xs text-primary">{note}</p>}
       <ErrorNote message={error} />
     </div>
+  )
+}
+
+/** What the work schedule says to do on the day of this visit, grouped as the client will see it. */
+function TodaysWork({ plan, start }: { plan: Plan; start: string }) {
+  const day = dayOf(new Date(start))
+  const groups = workForDay(plan, day)
+  return (
+    <section className="card space-y-3 p-4">
+      <h2 className="text-lg">Today's work: {DAY_FULL[day]}</h2>
+      {groups.length === 0 ? (
+        <p className="text-sm text-ink-2">The schedule has no cleaning areas planned for {DAY_FULL[day]}. Do the areas on the checklist below.</p>
+      ) : (
+        groups.map((g) => (
+          <div key={g.sub.id}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-2">
+              {g.section} · {g.sub.name}
+            </p>
+            <ul className="mt-1 space-y-1">
+              {g.rows.map(({ row, method }) => (
+                <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
+                  <span>{row.name}</span>
+                  <span className="shrink-0 rounded-full bg-tint px-2 py-0.5 text-xs font-semibold text-primary">{METHOD_LABEL[method]}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
+    </section>
   )
 }

@@ -5,10 +5,13 @@ import type { EvidenceRow } from '#/components/Evidence'
 import { Gate } from '#/components/Gate'
 import { AppShell } from '#/components/Shells'
 import { Issues } from '#/components/Issues'
+import type { IssueArea } from '#/components/Issues'
+import { WorkPlanView } from '#/components/WorkPlan'
 import { Badge, ErrorNote, Loading, Section, Table } from '#/components/ui'
 import { label, money, must, useLoad, when } from '#/lib/format'
 import { parseSchedule } from '#/lib/schedule'
 import { supabase } from '#/lib/supabase'
+import { dayOf, parseLegend, parsePlan } from '#/lib/workplan'
 
 export const Route = createFileRoute('/jobs/$jobId')({
   head: () => ({ meta: [{ title: 'Clean · Duly' }] }),
@@ -33,18 +36,19 @@ function Job() {
       await db
         .from('jobs')
         .select(
-          'id, status, scheduled_start, scheduled_end, value, currency, brief_id, brief_version, buyer_org_id, vendor:organisations!jobs_vendor_org_id_fkey(name), site:sites(name, town, postcode)',
+          'id, status, scheduled_start, scheduled_end, value, currency, brief_id, brief_version, buyer_org_id, quote_id, vendor:organisations!jobs_vendor_org_id_fkey(name), site:sites(name, town, postcode)',
         )
         .eq('id', jobId)
         .single(),
     )
-    const [version, events, evidence, results, payments, issues] = await Promise.all([
+    const [version, events, evidence, results, payments, issues, workSchedule] = await Promise.all([
       db.from('brief_versions').select('schedule').eq('brief_id', job.brief_id).eq('version', job.brief_version).single(),
       db.from('job_events').select('id, kind, at, within_geofence, data').eq('job_id', jobId).order('at'),
       db.from('evidence').select('id, area_id, kind, storage_path, within_geofence, created_at').eq('job_id', jobId).order('created_at'),
       db.from('area_results').select('area_id, standard_id, done_by_operative, verdict').eq('job_id', jobId),
       db.from('payments').select('id, kind, amount, currency, status, due_at, note').eq('job_id', jobId).order('created_at'),
-      db.from('issues').select('id, kind, description, status, resolution, created_at, raised_by').eq('job_id', jobId).order('created_at'),
+      db.from('issues').select('id, kind, description, status, resolution, created_at, raised_by, plan_label').eq('job_id', jobId).order('created_at'),
+      job.quote_id ? db.from('work_schedules').select('plan, legend, status').eq('quote_id', job.quote_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ])
     const { data: me } = await db.auth.getUser()
     return {
@@ -55,12 +59,14 @@ function Job() {
       results: must(results),
       payments: must(payments),
       issues: must(issues),
+      workSchedule: workSchedule.error ? null : workSchedule.data,
       me: me.user?.id,
     }
   }, [jobId])
   const urls = useSignedUrls(data?.evidence)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [complaintArea, setComplaintArea] = useState<IssueArea | null>(null)
 
   if (error) return <ErrorNote message={error} />
   if (!data) return <Loading />
@@ -90,7 +96,7 @@ function Job() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <Link to="/" className="text-sm font-medium text-primary">
+        <Link to="/" className="link-action text-sm font-medium text-primary">
           ← Back
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -100,7 +106,7 @@ function Job() {
         <p className="mt-1 text-ink-2">
           {job.vendor?.name} · {job.site?.name}, {job.site?.town} · {money(job.value, job.currency)}
         </p>
-        <Link to="/briefs/$briefId" params={{ briefId: job.brief_id }} className="mt-1 inline-block text-sm font-medium text-primary">
+        <Link to="/briefs/$briefId" params={{ briefId: job.brief_id }} className="link-action text-sm font-medium text-primary">
           View the brief (v{job.brief_version})
         </Link>
       </div>
@@ -175,7 +181,21 @@ function Job() {
         </Section>
       )}
 
-      <Issues jobId={jobId} issues={data.issues} me={data.me} onChange={reload} />
+      {data.workSchedule && (
+        <Section title="Work schedule">
+          <p className="text-sm text-ink-2">
+            What {job.vendor?.name} agreed to do, area by area and day by day. This visit's day is highlighted. If something wasn't done, report it on the exact cleaning area.
+          </p>
+          <WorkPlanView
+            plan={parsePlan(data.workSchedule.plan)}
+            legend={parseLegend(data.workSchedule.legend)}
+            highlight={dayOf(new Date(job.scheduled_start))}
+            onReport={['completed', 'quality_verified', 'paid', 'disputed', 'in_progress'].includes(job.status) ? (row, path) => setComplaintArea({ id: row.id, label: path }) : undefined}
+          />
+        </Section>
+      )}
+
+      <Issues jobId={jobId} issues={data.issues} me={data.me} onChange={reload} area={complaintArea} onArea={setComplaintArea} />
 
       {data.payments.length > 0 && (
         <Section title="Money">
