@@ -21,7 +21,7 @@ const nav = [
 
 function ProLayout() {
   return (
-    <ConsoleShell suffix="Pro" nav={nav}>
+    <ConsoleShell suffix="Pro" nav={nav} roles={['vendor_admin', 'dispatcher']}>
       <Gate roles={['vendor_admin', 'dispatcher']} allowSignUp={false} signInHeading="Duly Pro">
         <VendorOnly />
       </Gate>

@@ -61,7 +61,7 @@ function Brief() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <Link to={brief.org?.segment === 'homeowner' ? '/' : '/business'} className="text-sm font-medium text-primary">
+        <Link to={brief.org?.segment === 'homeowner' ? '/' : '/business'} className="link-action text-sm font-medium text-primary">
           ← Back
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -584,7 +584,7 @@ function Quotes({ quotes, currency, hasPattern }: { quotes: QuoteRow[]; currency
                   <p className="font-display text-2xl">{money(q.total, q.currency || currency)}</p>
                 </div>
                 <details className="mt-2 text-sm">
-                  <summary className="cursor-pointer py-2 font-medium text-primary">See how it's priced</summary>
+                  <summary className="flex min-h-[44px] cursor-pointer items-center font-medium text-primary">See how it's priced</summary>
                   <ul className="space-y-1 text-ink-2">
                     {(price.lines ?? []).map((l) => (
                       <li key={l.area_id} className="flex justify-between">

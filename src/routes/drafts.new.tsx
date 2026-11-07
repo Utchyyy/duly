@@ -88,7 +88,7 @@ function NewDraft() {
   return (
     <form onSubmit={submit} className="space-y-6">
       <div>
-        <Link to={org.segment === 'homeowner' ? '/' : '/business'} className="text-sm font-medium text-primary">
+        <Link to={org.segment === 'homeowner' ? '/' : '/business'} className="link-action text-sm font-medium text-primary">
           ← Back
         </Link>
         <h1 className="mt-2 text-3xl">Draft a brief</h1>

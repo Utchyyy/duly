@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { useAuth } from '#/lib/auth'
+import { hasRole, useAuth } from '#/lib/auth'
+import type { Role } from '#/lib/auth'
 import { NotificationBell } from './Notifications'
 
 function Wordmark({ suffix, light }: { suffix?: string; light?: boolean }) {
@@ -62,7 +63,10 @@ export function AppShell({ suffix, children, wide }: { suffix?: string; children
 export type NavItem = { label: string; to: string; exact?: boolean }
 
 /** Duly Pro and Duly Admin: desktop console, 1440px design width, dark sidebar. */
-export function ConsoleShell({ suffix, nav, children }: { suffix: string; nav: NavItem[]; children: ReactNode }) {
+export function ConsoleShell({ suffix, nav, roles, children }: { suffix: string; nav: NavItem[]; roles: Role[]; children: ReactNode }) {
+  const { memberships } = useAuth()
+  // The menu names what the console does, so only people who may use it see it (not signed-out visitors or other roles).
+  const showNav = hasRole(memberships, [...roles, 'platform_admin'])
   return (
     <div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
       <aside className="bg-pro p-5 text-pro-ink md:min-h-screen">
@@ -75,7 +79,7 @@ export function ConsoleShell({ suffix, nav, children }: { suffix: string; nav: N
           </div>
         </div>
         <nav className="mt-6 flex gap-1 overflow-x-auto md:mt-8 md:flex-col">
-          {nav.map((item) => (
+          {(showNav ? nav : []).map((item) => (
             <Link
               key={item.to}
               to={item.to}
