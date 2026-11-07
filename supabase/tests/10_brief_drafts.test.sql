@@ -100,7 +100,10 @@ begin
   perform tests.eq((select preferred_start::text from public.brief_versions where brief_id = item2), '18:00:00', 'start time carried over');
   perform tests.eq((select sum((a ->> 'minutes')::int) from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a where bv.brief_id = item2), 70::bigint, 'minutes follow the edited draft (50 + 20)');
   perform tests.eq((select count(distinct a ->> 'id') from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a where bv.brief_id = item2), 2::bigint, 'every area has its own generated id');
-  perform tests.eq((select count(*) from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a, jsonb_array_elements(a -> 'standards') t where bv.brief_id = item2), 2::bigint, 'standards carried over');
+  perform tests.eq((select count(*) from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a, jsonb_array_elements(a -> 'standards') t where bv.brief_id = item2 and a ->> 'name' = 'Surgery 1'), 2::bigint, 'the drafted standards were carried over untouched');
+  perform tests.eq((select count(*) from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a, jsonb_array_elements(a -> 'standards') t where bv.brief_id = item2 and a ->> 'name' = 'Waiting room'), 1::bigint, 'an area with no drafted standards gets the library standard for its type');
+  perform tests.eq((select t ->> 'text' from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a, jsonb_array_elements(a -> 'standards') t where bv.brief_id = item2 and a ->> 'name' = 'Waiting room'), (select text from public.standards_library where segment = 'sme' and area_type = 'reception'), 'and it is the segment''s own library text');
+  perform tests.ok(not exists (select 1 from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a, jsonb_array_elements(a -> 'standards') t where bv.brief_id = item2 and (t ->> 'id') is null), 'library standards get generated ids too');
   perform tests.ok(not exists (select 1 from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a, jsonb_array_elements(a -> 'standards') t where bv.brief_id = item2 and (t ->> 'id') is null), 'every standard has a generated id');
   perform tests.eq((select status::text from public.approval_queue where id = item), 'approved', 'the queue item is approved');
   perform tests.eq((select reviewed_by from public.approval_queue where id = item), approver_u, 'the approver is recorded');
@@ -227,4 +230,17 @@ begin
   get diagnostics n = row_count;
   perform tests.eq(n, 0::bigint, 'an uploaded source document cannot be deleted');
   perform tests.as_su();
+end $$;
+
+-- An area whose type has no library standards stays empty (the brief editor then says which to fix).
+do $$
+declare owner_u uuid := tests.mk_user('owner-fill'); org uuid; item uuid; bid uuid; d jsonb;
+begin
+  perform tests.as_user(owner_u); org := public.create_buyer_org('Fill Org', 'sme');
+  d := jsonb_set(pg_temp.sample_draft(), '{sections,0,areas,1,area_type}', '"loading_bay"');
+  insert into public.approval_queue (org_id, draft) values (org, d) returning id into item;
+  bid := public.approve_brief_draft(item, d, null, 51.9, 0.9);
+  perform tests.as_su();
+  perform tests.eq((select count(*) from public.brief_versions bv, jsonb_array_elements(bv.schedule) s, jsonb_array_elements(s -> 'areas') a, jsonb_array_elements(a -> 'standards') t where bv.brief_id = bid and a ->> 'name' = 'Waiting room'), 0::bigint, 'no library standards for the type: the area stays empty rather than guessing');
+  perform tests.eq((select (final_draft #> '{sections,0,areas,1,standards}')::text from public.approval_queue where id = item), '[]', 'the approved draft on record still shows what the person approved');
 end $$;
