@@ -13,6 +13,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "draft:smoke": "node scripts/smoke-draft.ts",
+    "verify:crew": "node scripts/verify-crew-offline.mjs && node scripts/verify-crew-outbox-idb.mjs && node scripts/verify-crew-photos.mjs",
     "test:unit": "node --test \"src/**/*.test.ts\"",
     "test:db": "supabase/tests/run.sh",
     "format": "prettier --write . && eslint --fix",

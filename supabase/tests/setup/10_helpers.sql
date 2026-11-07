@@ -114,8 +114,8 @@ begin
   perform tests.as_user((f ->> 'crew')::uuid);
   perform public.check_in((f ->> 'job')::uuid, 51.8893, 0.9043);
   insert into public.evidence (job_id, area_id, kind, storage_path, lat, lng) values
-    ((f ->> 'job')::uuid, 'a1', 'photo_after', 'evidence/x/a1/1.jpg', 51.8893, 0.9043),
-    ((f ->> 'job')::uuid, 'a2', 'photo_after', 'evidence/x/a2/1.jpg', 51.8893, 0.9043);
+    ((f ->> 'job')::uuid, 'a1', 'photo_after', (f ->> 'job') || '/a1/1.jpg', 51.8893, 0.9043),
+    ((f ->> 'job')::uuid, 'a2', 'photo_after', (f ->> 'job') || '/a2/1.jpg', 51.8893, 0.9043);
   insert into public.area_results (job_id, area_id, standard_id, done_by_operative) values
     ((f ->> 'job')::uuid, 'a1', 's1', true), ((f ->> 'job')::uuid, 'a1', 's2', true), ((f ->> 'job')::uuid, 'a2', 's3', true);
   perform public.complete_job((f ->> 'job')::uuid, 51.8893, 0.9043);

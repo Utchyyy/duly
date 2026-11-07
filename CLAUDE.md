@@ -32,6 +32,8 @@ AI drafting (optional): a buyer pastes text or uploads a document → a server f
 
 Notifications: created only in SQL (triggers on quotes, jobs, assignments, issues, shifts, DBS and verification, plus the scheduled `private.notify_due_items()`), into `notifications` (the in-app inbox, which doubles as the email outbox). They never carry staff pay, amounts, street addresses, access notes or safeguarding detail, they never block the action they report, and people can only read them and mark them read. Email is sent by `POST /api/notifications/send` (needs `CRON_SECRET`), which uses the service role; those secrets are server-only.
 
+Crew offline: `public/crew-sw.js` (scope `/crew`) caches only the app's static files and the Crew page shell, never data, and never anything cross-origin or non-GET. Check-in, ticking and completing need a connection because the database records their time and place as "now". Photos taken without one are kept in IndexedDB (`src/lib/crew/outbox.ts`) with their original time and place and sent when the signal returns; `evidence.storage_path` is unique so a resend cannot duplicate. A failed load is never shown as "no jobs" or "no access" (`loadFailed` in `useAuth`).
+
 ## Auth
 Email one-time code (Supabase OTP). Buyers and operatives can sign up; vendor staff and admins are invite-only (`shouldCreateUser: false`). Roles come from `memberships`.
 

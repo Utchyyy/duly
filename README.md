@@ -37,6 +37,17 @@ People are told when something needs them: a quote asked for or arrived, a clean
 - **What is never said:** staff pay, amounts, street addresses, access notes, or anything about a safeguarding report. Email goes through a third party, so text says what happened and links into the app. The SQL tests check this.
 - **A notification can never block the action it reports:** the trigger functions catch their own errors.
 
+## Duly Crew offline
+
+Duly Crew installs to the home screen (`/crew.webmanifest`, PNG icons made by `scripts/make-icons.mjs`) and keeps working when the signal drops:
+
+- **`public/crew-sw.js`** (scope `/crew`, production only) saves the app's own static files and the last good copy of each Crew page, so the app opens without a signal, and shows a plain offline page for a page it has never seen. It never touches Supabase, API routes or other sites, stores no user data, and wipes its caches on sign-out.
+- **Photos taken without a signal** are kept on the phone (IndexedDB, `src/lib/crew/outbox.ts`) with the time and place they were taken, and sent when the connection returns. Sending is safe to repeat: `evidence.storage_path` is unique, so a retry or a second tab cannot record a photo twice.
+- **Checking in, ticking standards and finishing a clean need a connection**, on purpose: the database records their time and place as "now", so replaying them later would be a lie. The app says so in plain words and never shows a failed load as "no jobs" or "no access".
+- Open a job before you go somewhere with no signal: job details are not cached, so a fresh open needs a connection. Photos only upload while the app is open (no background sync, which iPhones lack).
+
+`pnpm verify:crew` runs the real app in Chromium and checks the worker, the IndexedDB store and the whole photo flow against a fake backend. It needs Playwright's Chromium and the built app running: `pnpm build && PORT=3100 node .output/server/index.mjs &`, then `pnpm verify:crew` (the scripts take the address as an argument, default `http://127.0.0.1:3100`).
+
 ## Tests
 
 `pnpm test:unit` runs the TypeScript unit tests (the drafting pipeline, with a fake model and a fake database). `pnpm test:db` applies every migration to a throwaway Postgres and runs `supabase/tests/*.test.sql`: the booking-to-payment workflow, escrow and disputes, recurring visits, who can see or change what (RLS, anon, protected fields), WFX shifts and DBS, evidence storage, and per-segment money rules (invoice terms, hospitality, policy-driven releases and fee). It needs `psql` and a Postgres superuser via the usual `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`, and it drops and recreates a database called `duly_test`. CI runs both, plus lint, typecheck and build.

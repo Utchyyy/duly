@@ -36,8 +36,8 @@ begin
   -- Cannot complete without photos, then without ticks.
   perform tests.throws(format('select public.complete_job(%L)', v_job), '%still need an after photo%', 'complete needs an after photo per area');
   insert into public.evidence (job_id, area_id, kind, storage_path, lat, lng) values
-    (v_job, 'a1', 'photo_after', 'evidence/x/a1/1.jpg', 51.8893, 0.9043),
-    (v_job, 'a2', 'photo_after', 'evidence/x/a2/1.jpg', 51.5, -0.1);
+    (v_job, 'a1', 'photo_after', v_job || '/a1/1.jpg', 51.8893, 0.9043),
+    (v_job, 'a2', 'photo_after', v_job || '/a2/1.jpg', 51.5, -0.1);
   perform tests.eq((select within_geofence from public.evidence where job_id = v_job and area_id = 'a1'), true, 'evidence on site is inside the geofence');
   perform tests.eq((select within_geofence from public.evidence where job_id = v_job and area_id = 'a2'), false, 'evidence far away is flagged outside the geofence');
   perform tests.throws(format('select public.complete_job(%L)', v_job), '%still need ticking%', 'complete needs every standard ticked');

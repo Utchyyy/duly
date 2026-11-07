@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import type { Database } from './database.types'
+import { clearCrewCaches } from './crew/service-worker'
 import { supabase } from './supabase'
 
 export type Role = Database['public']['Enums']['member_role']
@@ -18,6 +19,8 @@ type AuthState = {
   session: Session | null
   memberships: Membership[]
   hasWorkerRecord: boolean
+  /** The account lookup failed (usually no signal). Roles are then unknown, which is not the same as having none. */
+  loadFailed: boolean
   refresh: () => Promise<void>
   signOut: () => Promise<void>
 }
@@ -29,12 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [hasWorkerRecord, setHasWorkerRecord] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const load = useCallback(async (s: Session | null) => {
     setSession(s)
     if (!s) {
       setMemberships([])
       setHasWorkerRecord(false)
+      setLoadFailed(false)
       setReady(true)
       return
     }
@@ -46,6 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', s.user.id),
       db.from('workers').select('id').eq('user_id', s.user.id).maybeSingle(),
     ])
+    // If the lookup failed, keep what we knew and say so: "couldn't ask" must never look like "has no roles".
+    if (m.error || w.error) {
+      setLoadFailed(true)
+      setReady(true)
+      return
+    }
+    setLoadFailed(false)
     setMemberships(m.data ?? [])
     setHasWorkerRecord(Boolean(w.data))
     setReady(true)
@@ -67,10 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase().auth.signOut()
+    await clearCrewCaches()
   }, [])
 
   return (
-    <AuthContext.Provider value={{ ready, session, memberships, hasWorkerRecord, refresh, signOut }}>
+    <AuthContext.Provider value={{ ready, session, memberships, hasWorkerRecord, loadFailed, refresh, signOut }}>
       {children}
     </AuthContext.Provider>
   )
