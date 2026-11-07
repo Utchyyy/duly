@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BusinessRouteImport } from './routes/business'
 import { Route as CrewRouteImport } from './routes/crew'
@@ -38,6 +39,11 @@ import { Route as SitesNewRouteImport } from './routes/sites.new'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -163,6 +169,7 @@ const SitesNewRoute = SitesNewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
   '/business': typeof BusinessRoute
   '/crew': typeof CrewRouteWithChildren
@@ -190,6 +197,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/business': typeof BusinessRoute
   '/admin/issues': typeof AdminIssuesRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -215,6 +223,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
   '/business': typeof BusinessRoute
   '/crew': typeof CrewRouteWithChildren
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/admin'
     | '/business'
     | '/crew'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/business'
     | '/admin/issues'
     | '/admin/payments'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/admin'
     | '/business'
     | '/crew'
@@ -323,6 +335,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRouteWithChildren
   BusinessRoute: typeof BusinessRoute
   CrewRoute: typeof CrewRouteWithChildren
@@ -339,6 +352,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -572,6 +592,7 @@ const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   AdminRoute: AdminRouteWithChildren,
   BusinessRoute: BusinessRoute,
   CrewRoute: CrewRouteWithChildren,

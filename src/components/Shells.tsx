@@ -12,15 +12,26 @@ function Wordmark({ suffix, light }: { suffix?: string; light?: boolean }) {
 }
 
 function AccountButton({ light }: { light?: boolean }) {
-  const { session, signOut } = useAuth()
+  const { session } = useAuth()
   if (!session) return null
   return (
-    <button
-      className={`min-h-[44px] text-sm font-medium ${light ? 'text-pro-ink' : 'text-ink-2'}`}
-      onClick={() => void signOut()}
-    >
-      Sign out
-    </button>
+    <Link to="/account" className={`inline-flex min-h-[44px] items-center text-sm font-medium ${light ? 'text-pro-ink' : 'text-ink-2'}`}>
+      Account
+    </Link>
+  )
+}
+
+/** Nudges people who signed in with a code to set a password, so they don't depend on email next time. */
+function PasswordNudge() {
+  const { session } = useAuth()
+  if (!session || session.user.user_metadata.has_password) return null
+  return (
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-tint px-4 py-3 text-sm text-primary">
+      <span>Set a password so you can sign in without waiting for a code.</span>
+      <Link to="/account" className="font-semibold underline">
+        Set password
+      </Link>
+    </div>
   )
 }
 
@@ -36,7 +47,10 @@ export function AppShell({ suffix, children, wide }: { suffix?: string; children
           <AccountButton />
         </div>
       </header>
-      <main className={`mx-auto px-4 py-6 ${wide ? 'max-w-5xl' : 'max-w-xl'}`}>{children}</main>
+      <main className={`mx-auto px-4 py-6 ${wide ? 'max-w-5xl' : 'max-w-xl'}`}>
+        <PasswordNudge />
+        {children}
+      </main>
     </div>
   )
 }
@@ -73,7 +87,10 @@ export function ConsoleShell({ suffix, nav, children }: { suffix: string; nav: N
           <AccountButton light />
         </div>
       </aside>
-      <main className="min-w-0 p-5 md:p-10">{children}</main>
+      <main className="min-w-0 p-5 md:p-10">
+        <PasswordNudge />
+        {children}
+      </main>
     </div>
   )
 }
