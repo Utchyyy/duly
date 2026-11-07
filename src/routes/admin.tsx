@@ -20,7 +20,7 @@ const nav = [
 
 function AdminLayout() {
   return (
-    <ConsoleShell suffix="Admin" nav={nav}>
+    <ConsoleShell suffix="Admin" nav={nav} roles={['platform_admin']}>
       <Gate roles={['platform_admin']} allowSignUp={false} signInHeading="Duly Admin">
         <div className="max-w-5xl">
           <Outlet />

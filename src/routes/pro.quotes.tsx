@@ -78,7 +78,7 @@ function ProQuotes() {
                   {q.total != null && ` · ${money(q.total, q.currency)} · valid until ${day(q.valid_until)}`}
                 </p>
                 <details className="text-sm">
-                  <summary className="cursor-pointer py-1 font-medium text-primary">See the brief</summary>
+                  <summary className="flex min-h-[44px] cursor-pointer items-center font-medium text-primary">See the brief</summary>
                   {sched.map((s) => (
                     <div key={s.name} className="mt-2">
                       <p className="font-medium">{s.name}</p>

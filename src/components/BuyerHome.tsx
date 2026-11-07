@@ -62,7 +62,7 @@ export function BuyerHome({ mode }: { mode: 'home' | 'business' }) {
 function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgName: string; mode: 'home' | 'business'; isOwner: boolean }) {
   const { data, error } = useLoad(async () => {
     const db = supabase()
-    const [sites, briefs, jobs, perJob, perContract, drafts] = await Promise.all([
+    const [sites, briefs, jobs, toReview, perJob, perContract, drafts] = await Promise.all([
       db.from('sites').select('id, name, town, postcode').eq('org_id', orgId).order('created_at'),
       db.from('briefs').select('id, title, status, current_version, site_id, created_at').eq('buyer_org_id', orgId).order('created_at', { ascending: false }),
       db
@@ -71,6 +71,14 @@ function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgN
         .eq('buyer_org_id', orgId)
         .order('scheduled_start', { ascending: false })
         .limit(20),
+      // Cleans the crew has finished and the client has not yet checked. Money is only released once they approve, so these
+      // are never hidden by the 20-job limit above and are shown first.
+      db
+        .from('jobs')
+        .select('id, status, scheduled_start, site_id, vendor:organisations!jobs_vendor_org_id_fkey(name)')
+        .eq('buyer_org_id', orgId)
+        .eq('status', 'completed')
+        .order('scheduled_start'),
       db
         .from('payments')
         .select('id, kind, amount, currency, due_at, note, job:jobs!inner(buyer_org_id)')
@@ -86,7 +94,7 @@ function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgN
       db.from('approval_queue').select('id, draft, created_at').eq('org_id', orgId).eq('kind', 'brief_draft').eq('status', 'pending').order('created_at', { ascending: false }),
     ])
     const toPay = [...must(perJob), ...must(perContract)].sort((a, b) => (a.due_at ?? '').localeCompare(b.due_at ?? ''))
-    return { sites: must(sites), briefs: must(briefs), jobs: must(jobs), toPay, drafts: must(drafts) }
+    return { sites: must(sites), briefs: must(briefs), jobs: must(jobs), toReview: must(toReview), toPay, drafts: must(drafts) }
   }, [orgId])
 
   const { memberships } = useAuth()
@@ -129,6 +137,26 @@ function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgN
                         <p className="text-sm text-ink-2">Drafted by AI · {when(d.created_at)} · check it before approving</p>
                       </div>
                       <Badge value="pending">Review</Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+          {data.toReview.length > 0 && (
+            <Section title="Check the work">
+              <p className="text-sm text-ink-2">The cleaner has finished. Look at the photos and mark each standard. Money is only released once you approve.</p>
+              <ul className="space-y-2">
+                {data.toReview.map((j) => (
+                  <li key={j.id}>
+                    <Link to="/jobs/$jobId" params={{ jobId: j.id }} className="card flex items-center justify-between gap-3 border-primary p-4">
+                      <div>
+                        <p className="font-semibold">{when(j.scheduled_start)}</p>
+                        <p className="text-sm text-ink-2">
+                          {j.vendor?.name} · {siteName(j.site_id)}
+                        </p>
+                      </div>
+                      <Badge value="completed">Check the work</Badge>
                     </Link>
                   </li>
                 ))}

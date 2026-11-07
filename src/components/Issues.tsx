@@ -42,7 +42,9 @@ export function Issues({ jobId, issues, me, onChange }: { jobId: string; issues:
   }
 
   async function resolve(id: string) {
-    const { error: err } = await supabase().from('issues').update({ status: 'resolved', resolution: 'Resolved by the client' }).eq('id', id)
+    // Keep any outcome Duly or the vendor already recorded: marking it sorted must not overwrite that evidence.
+    const existing = issues.find((i) => i.id === id)?.resolution
+    const { error: err } = await supabase().from('issues').update({ status: 'resolved', resolution: existing || 'Resolved by the client' }).eq('id', id)
     if (err) setError(err.message)
     onChange()
   }
