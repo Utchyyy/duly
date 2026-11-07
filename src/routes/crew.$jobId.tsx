@@ -47,7 +47,7 @@ function JobSheet() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [triedWhileWaiting, setTriedWhileWaiting] = useState(false)
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="space-y-3">
         <ErrorNote message={friendlyError(error)} />
@@ -143,7 +143,7 @@ function JobSheet() {
         message={
           triedWhileWaiting && waitingPhotos > 0
             ? `${waitingPhotos} photo${waitingPhotos === 1 ? ' is' : 's are'} still waiting to upload. Finish once they have gone, which needs a signal.`
-            : actionError
+            : (actionError ?? (error ? `We couldn't refresh this job just now, so what you see may be out of date. ${friendlyError(error)}` : null))
         }
       />
 
@@ -225,7 +225,7 @@ function AreaCard({
       : await db
           .from('area_results')
           .upsert({ job_id: jobId, area_id: area.id, standard_id: std, done_by_operative: true }, { onConflict: 'job_id,area_id,standard_id' })
-    if (err) setError(friendlyError(err))
+    if (err) return setError(friendlyError(err))
     onChange()
   }
 

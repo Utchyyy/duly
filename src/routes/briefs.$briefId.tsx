@@ -199,7 +199,11 @@ function Editor({
     const areas = schedule.flatMap((s) => s.areas)
     if (areas.length === 0) return setError('Add at least one area first.')
     if (areas.some((a) => !a.minutes || a.minutes <= 0)) return setError('Every area needs a time in minutes.')
-    if (areas.some((a) => a.standards.length === 0)) return setError('Every area needs at least one standard, so the clean can be checked.')
+    const bare = areas.filter((a) => a.standards.length === 0)
+    if (bare.length > 0) {
+      const names = bare.map((a) => a.name || 'Unnamed area').join(', ')
+      return setError(`Every area needs at least one standard, so the clean can be checked. Add one to: ${names}.`)
+    }
     if (days.length > 0 && !startTime) return setError('Add a start time for the regular visits.')
     if (!(await save())) return
     setBusy(true)

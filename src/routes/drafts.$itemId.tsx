@@ -69,6 +69,7 @@ function Review({ item, sites, initial }: { item: Item; sites: { id: string; nam
   const navigate = useNavigate()
   const canReview = memberships.some((m) => m.org_id === item.org_id && (m.role === 'owner' || m.role === 'approver'))
   const pending = item.status === 'pending'
+  const homeTo = memberships.find((m) => m.org_id === item.org_id)?.org?.segment === 'homeowner' ? '/' : '/business'
 
   const [title, setTitle] = useState(initial.title)
   const [siteChoice, setSiteChoice] = useState<string>('new')
@@ -121,7 +122,7 @@ function Review({ item, sites, initial }: { item: Item; sites: { id: string; nam
     setProblem(null)
     try {
       ok(await supabase().rpc('reject_brief_draft', { p_item: item.id, p_reason: reason.trim() || undefined }))
-      await navigate({ to: '/' })
+      await navigate({ to: homeTo })
     } catch (err) {
       setProblem(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setBusy(false)
@@ -143,7 +144,7 @@ function Review({ item, sites, initial }: { item: Item; sites: { id: string; nam
           </Link>
         )}
         <div>
-          <Link to="/" className="link-action font-semibold text-primary">
+          <Link to={homeTo} className="link-action font-semibold text-primary">
             Back
           </Link>
         </div>
@@ -154,7 +155,7 @@ function Review({ item, sites, initial }: { item: Item; sites: { id: string; nam
   return (
     <div className="space-y-8">
       <div>
-        <Link to="/" className="link-action text-sm font-medium text-primary">
+        <Link to={homeTo} className="link-action text-sm font-medium text-primary">
           ← Back
         </Link>
         <h1 className="text-3xl">Check your draft</h1>
