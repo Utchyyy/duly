@@ -32,6 +32,11 @@ export function AreaLinks() {
   )
 }
 
+function draftTitle(draft: unknown): string {
+  const t = draft && typeof draft === 'object' && !Array.isArray(draft) ? (draft as Record<string, unknown>).title : null
+  return typeof t === 'string' && t.trim() ? t : 'Untitled draft'
+}
+
 /** Home for buyers. `mode` decides which segments an account can be started in. */
 export function BuyerHome({ mode }: { mode: 'home' | 'business' }) {
   const { memberships, refresh } = useAuth()
@@ -57,7 +62,7 @@ export function BuyerHome({ mode }: { mode: 'home' | 'business' }) {
 function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgName: string; mode: 'home' | 'business'; isOwner: boolean }) {
   const { data, error } = useLoad(async () => {
     const db = supabase()
-    const [sites, briefs, jobs, perJob, perContract] = await Promise.all([
+    const [sites, briefs, jobs, perJob, perContract, drafts] = await Promise.all([
       db.from('sites').select('id, name, town, postcode').eq('org_id', orgId).order('created_at'),
       db.from('briefs').select('id, title, status, current_version, site_id, created_at').eq('buyer_org_id', orgId).order('created_at', { ascending: false }),
       db
@@ -78,11 +83,14 @@ function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgN
         .eq('contract.buyer_org_id', orgId)
         .in('kind', ['direct_debit', 'invoice'])
         .eq('status', 'pending'),
+      db.from('approval_queue').select('id, draft, created_at').eq('org_id', orgId).eq('kind', 'brief_draft').eq('status', 'pending').order('created_at', { ascending: false }),
     ])
     const toPay = [...must(perJob), ...must(perContract)].sort((a, b) => (a.due_at ?? '').localeCompare(b.due_at ?? ''))
-    return { sites: must(sites), briefs: must(briefs), jobs: must(jobs), toPay }
+    return { sites: must(sites), briefs: must(briefs), jobs: must(jobs), toPay, drafts: must(drafts) }
   }, [orgId])
 
+  const { memberships } = useAuth()
+  const canDraft = memberships.some((m) => m.org_id === orgId && (m.role === 'owner' || m.role === 'approver'))
   const siteName = (id: string) => data?.sites.find((s) => s.id === id)?.name ?? ''
   const place = mode === 'home' ? 'home' : 'site'
 
@@ -94,15 +102,39 @@ function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgN
           <p className="text-sm font-medium text-primary">{orgName}</p>
           <h1 className="mt-1 text-3xl">{mode === 'home' ? 'Your home' : 'Your sites'}</h1>
         </div>
-        <Link to="/sites/new" search={{ org: orgId }} className="btn btn-primary">
-          {data?.sites.length ? `New brief` : `Add your ${place}`}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {canDraft && (
+            <Link to="/drafts/new" search={{ org: orgId }} className="btn btn-ghost">
+              Draft from a document
+            </Link>
+          )}
+          <Link to="/sites/new" search={{ org: orgId }} className="btn btn-primary">
+            {data?.sites.length ? `New brief` : `Add your ${place}`}
+          </Link>
+        </div>
       </section>
       <ErrorNote message={error} />
       {!data ? (
         <Loading />
       ) : (
         <>
+          {data.drafts.length > 0 && (
+            <Section title="Drafts to review">
+              <ul className="space-y-2">
+                {data.drafts.map((d) => (
+                  <li key={d.id}>
+                    <Link to="/drafts/$itemId" params={{ itemId: d.id }} className="card flex items-center justify-between gap-3 p-4">
+                      <div>
+                        <p className="font-semibold">{draftTitle(d.draft)}</p>
+                        <p className="text-sm text-ink-2">Drafted by AI · {when(d.created_at)} · check it before approving</p>
+                      </div>
+                      <Badge value="pending">Review</Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
           <Section title="Cleans booked">
             {data.jobs.length === 0 ? (
               <Empty title="Nothing booked yet">Accept a quote on a brief and the clean appears here.</Empty>

@@ -21,6 +21,7 @@ run -c "grant usage on schema public to anon, authenticated;
         grant select, insert, update, delete on storage.objects to anon, authenticated;"
 run -f "$here/setup/10_helpers.sql"
 
+export DULY_FIXTURES="$here/fixtures"
 failed=0
 for t in "$here"/*${1:-}*.test.sql; do
   [ -e "$t" ] || { echo "no tests match '${1:-}'"; exit 1; }

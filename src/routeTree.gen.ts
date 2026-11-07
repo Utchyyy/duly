@@ -25,6 +25,8 @@ import { Route as AdminWorkersRouteImport } from './routes/admin.workers'
 import { Route as BriefsBriefIdRouteImport } from './routes/briefs.$briefId'
 import { Route as CrewIndexRouteImport } from './routes/crew.index'
 import { Route as CrewJobIdRouteImport } from './routes/crew.$jobId'
+import { Route as DraftsItemIdRouteImport } from './routes/drafts.$itemId'
+import { Route as DraftsNewRouteImport } from './routes/drafts.new'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 import { Route as ProIndexRouteImport } from './routes/pro.index'
 import { Route as ProJobsRouteImport } from './routes/pro.jobs'
@@ -116,6 +118,16 @@ const CrewJobIdRoute = CrewJobIdRouteImport.update({
   path: '/$jobId',
   getParentRoute: () => CrewRoute,
 } as any)
+const DraftsItemIdRoute = DraftsItemIdRouteImport.update({
+  id: '/drafts/$itemId',
+  path: '/drafts/$itemId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DraftsNewRoute = DraftsNewRouteImport.update({
+  id: '/drafts/new',
+  path: '/drafts/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JobsJobIdRoute = JobsJobIdRouteImport.update({
   id: '/jobs/$jobId',
   path: '/jobs/$jobId',
@@ -182,6 +194,8 @@ export interface FileRoutesByFullPath {
   '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
   '/crew/$jobId': typeof CrewJobIdRoute
+  '/drafts/$itemId': typeof DraftsItemIdRoute
+  '/drafts/new': typeof DraftsNewRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
@@ -207,6 +221,8 @@ export interface FileRoutesByTo {
   '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
   '/crew/$jobId': typeof CrewJobIdRoute
+  '/drafts/$itemId': typeof DraftsItemIdRoute
+  '/drafts/new': typeof DraftsNewRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
@@ -236,6 +252,8 @@ export interface FileRoutesById {
   '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
   '/crew/$jobId': typeof CrewJobIdRoute
+  '/drafts/$itemId': typeof DraftsItemIdRoute
+  '/drafts/new': typeof DraftsNewRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
@@ -266,6 +284,8 @@ export interface FileRouteTypes {
     | '/admin/workers'
     | '/briefs/$briefId'
     | '/crew/$jobId'
+    | '/drafts/$itemId'
+    | '/drafts/new'
     | '/jobs/$jobId'
     | '/pro/jobs'
     | '/pro/payouts'
@@ -291,6 +311,8 @@ export interface FileRouteTypes {
     | '/admin/workers'
     | '/briefs/$briefId'
     | '/crew/$jobId'
+    | '/drafts/$itemId'
+    | '/drafts/new'
     | '/jobs/$jobId'
     | '/pro/jobs'
     | '/pro/payouts'
@@ -319,6 +341,8 @@ export interface FileRouteTypes {
     | '/admin/workers'
     | '/briefs/$briefId'
     | '/crew/$jobId'
+    | '/drafts/$itemId'
+    | '/drafts/new'
     | '/jobs/$jobId'
     | '/pro/jobs'
     | '/pro/payouts'
@@ -341,6 +365,8 @@ export interface RootRouteChildren {
   CrewRoute: typeof CrewRouteWithChildren
   ProRoute: typeof ProRouteWithChildren
   BriefsBriefIdRoute: typeof BriefsBriefIdRoute
+  DraftsItemIdRoute: typeof DraftsItemIdRoute
+  DraftsNewRoute: typeof DraftsNewRoute
   JobsJobIdRoute: typeof JobsJobIdRoute
   SitesNewRoute: typeof SitesNewRoute
 }
@@ -458,6 +484,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/crew/$jobId'
       preLoaderRoute: typeof CrewJobIdRouteImport
       parentRoute: typeof CrewRoute
+    }
+    '/drafts/$itemId': {
+      id: '/drafts/$itemId'
+      path: '/drafts/$itemId'
+      fullPath: '/drafts/$itemId'
+      preLoaderRoute: typeof DraftsItemIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/drafts/new': {
+      id: '/drafts/new'
+      path: '/drafts/new'
+      fullPath: '/drafts/new'
+      preLoaderRoute: typeof DraftsNewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/jobs/$jobId': {
       id: '/jobs/$jobId'
@@ -598,6 +638,8 @@ const rootRouteChildren: RootRouteChildren = {
   CrewRoute: CrewRouteWithChildren,
   ProRoute: ProRouteWithChildren,
   BriefsBriefIdRoute: BriefsBriefIdRoute,
+  DraftsItemIdRoute: DraftsItemIdRoute,
+  DraftsNewRoute: DraftsNewRoute,
   JobsJobIdRoute: JobsJobIdRoute,
   SitesNewRoute: SitesNewRoute,
 }
