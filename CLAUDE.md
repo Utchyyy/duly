@@ -22,7 +22,9 @@ Duly is a verified cleaning marketplace. Surfaces: buyer app `/`, Duly for Busin
   - WFX shifts: `offer_shift`, `respond_to_shift` (WIIx score computed by trigger from the four ratings)
   - People: `add_member`, `org_member_emails`, `mark_notifications_read`
   - Email worker (service role only, never callable by people): `worker_claim_notification_emails`, `worker_finish_notification_email`
+  - Admin evidence: `admin_case_timeline` (platform admin only; merges `audit_log` with a job's own events)
   - AI drafts: `approve_brief_draft`, `reject_brief_draft` (the model's output sits in `approval_queue` until a person approves it)
+- `audit_log` is an append-only record written by triggers (briefs and locked versions, quotes, contracts, jobs, assignments, photos, ticks, verdicts, issues, payments, verification claims, AI draft approvals). Only a platform admin reads it, it holds ids not foreign keys so it survives deletes, and a trigger refuses any change or removal. Admin → Case files shows it with the evidence for arbitration. New tables that carry a request or its outcome should get an `audit_row` trigger.
 - Triggers guard what direct writes can't be trusted with: job status/value (`protect_job_fields`), verdicts (`protect_area_result_fields`), verification tier (`protect_org_fields`), evidence geofence, issue SLA and dispute holds.
 
 ## Workflow

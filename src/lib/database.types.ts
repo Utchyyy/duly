@@ -77,6 +77,54 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          actor: string | null
+          at: string
+          brief_id: string | null
+          changes: Json
+          id: number
+          job_id: string | null
+          op: string
+          org_ids: string[]
+          quote_id: string | null
+          row_id: string | null
+          source: string
+          summary: string
+          table_name: string
+        }
+        Insert: {
+          actor?: string | null
+          at?: string
+          brief_id?: string | null
+          changes?: Json
+          id?: number
+          job_id?: string | null
+          op: string
+          org_ids?: string[]
+          quote_id?: string | null
+          row_id?: string | null
+          source?: string
+          summary: string
+          table_name: string
+        }
+        Update: {
+          actor?: string | null
+          at?: string
+          brief_id?: string | null
+          changes?: Json
+          id?: number
+          job_id?: string | null
+          op?: string
+          org_ids?: string[]
+          quote_id?: string | null
+          row_id?: string | null
+          source?: string
+          summary?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       area_results: {
         Row: {
           area_id: string
@@ -1600,6 +1648,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_case_timeline: {
+        Args: { p_brief?: string; p_job?: string; p_limit?: number; p_org?: string }
+        Returns: {
+          actor_email: string
+          actor_id: string
+          actor_name: string
+          at: string
+          brief_id: string
+          changes: Json
+          job_id: string
+          kind: string
+          lat: number
+          lng: number
+          op: string
+          org_ids: string[]
+          quote_id: string
+          source: string
+          summary: string
+          table_name: string
+          within_geofence: boolean
+        }[]
+      }
       accept_quote: {
         Args: { p_quote: string; p_start: string }
         Returns: string

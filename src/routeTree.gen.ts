@@ -38,6 +38,8 @@ import { Route as ProShiftsRouteImport } from './routes/pro.shifts'
 import { Route as ProTeamRouteImport } from './routes/pro.team'
 import { Route as ProVerificationRouteImport } from './routes/pro.verification'
 import { Route as SitesNewRouteImport } from './routes/sites.new'
+import { Route as AdminCasesIndexRouteImport } from './routes/admin.cases.index'
+import { Route as AdminCasesBriefIdRouteImport } from './routes/admin.cases.$briefId'
 import { Route as ApiNotificationsSendRouteImport } from './routes/api.notifications.send'
 
 const IndexRoute = IndexRouteImport.update({
@@ -185,6 +187,16 @@ const SitesNewRoute = SitesNewRouteImport.update({
   path: '/sites/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCasesIndexRoute = AdminCasesIndexRouteImport.update({
+  id: '/cases/',
+  path: '/cases/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCasesBriefIdRoute = AdminCasesBriefIdRouteImport.update({
+  id: '/cases/$briefId',
+  path: '/cases/$briefId',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiNotificationsSendRoute = ApiNotificationsSendRouteImport.update({
   id: '/api/notifications/send',
   path: '/api/notifications/send',
@@ -221,7 +233,9 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/crew/': typeof CrewIndexRoute
   '/pro/': typeof ProIndexRoute
+  '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
+  '/admin/cases/': typeof AdminCasesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -250,7 +264,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/crew': typeof CrewIndexRoute
   '/pro': typeof ProIndexRoute
+  '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
+  '/admin/cases': typeof AdminCasesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -283,7 +299,9 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/crew/': typeof CrewIndexRoute
   '/pro/': typeof ProIndexRoute
+  '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
+  '/admin/cases/': typeof AdminCasesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -317,7 +335,9 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/crew/'
     | '/pro/'
+    | '/admin/cases/$briefId'
     | '/api/notifications/send'
+    | '/admin/cases/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -346,7 +366,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/crew'
     | '/pro'
+    | '/admin/cases/$briefId'
     | '/api/notifications/send'
+    | '/admin/cases'
   id:
     | '__root__'
     | '/'
@@ -378,7 +400,9 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/crew/'
     | '/pro/'
+    | '/admin/cases/$briefId'
     | '/api/notifications/send'
+    | '/admin/cases/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -602,6 +626,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/cases/': {
+      id: '/admin/cases/'
+      path: '/cases'
+      fullPath: '/admin/cases/'
+      preLoaderRoute: typeof AdminCasesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cases/$briefId': {
+      id: '/admin/cases/$briefId'
+      path: '/cases/$briefId'
+      fullPath: '/admin/cases/$briefId'
+      preLoaderRoute: typeof AdminCasesBriefIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/notifications/send': {
       id: '/api/notifications/send'
       path: '/api/notifications/send'
@@ -620,6 +658,8 @@ interface AdminRouteChildren {
   AdminVerificationRoute: typeof AdminVerificationRoute
   AdminWorkersRoute: typeof AdminWorkersRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminCasesBriefIdRoute: typeof AdminCasesBriefIdRoute
+  AdminCasesIndexRoute: typeof AdminCasesIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -630,6 +670,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminVerificationRoute: AdminVerificationRoute,
   AdminWorkersRoute: AdminWorkersRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminCasesBriefIdRoute: AdminCasesBriefIdRoute,
+  AdminCasesIndexRoute: AdminCasesIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
