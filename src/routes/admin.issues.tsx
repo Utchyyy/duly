@@ -86,7 +86,7 @@ function IssueCard({ issue, onChange }: { issue: IssueRow; onChange: () => void 
       </div>
       <p className="text-sm">{issue.description}</p>
       {issue.job_id && (
-        <Link to="/jobs/$jobId" params={{ jobId: issue.job_id }} className="text-sm font-semibold text-primary">
+        <Link to="/jobs/$jobId" params={{ jobId: issue.job_id }} className="link-action text-sm font-semibold text-primary">
           Open the job and evidence
         </Link>
       )}

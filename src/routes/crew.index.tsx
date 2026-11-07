@@ -1,9 +1,11 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { InstallCard } from '#/components/CrewDevice'
 import { MyChecks, ShiftOffers } from '#/components/CrewExtras'
 import { Empty } from '#/components/Shells'
-import { Badge } from '#/components/ui'
+import { Badge, ErrorNote } from '#/components/ui'
+import { friendlyError } from '#/lib/crew/outbox'
 import { useAuth } from '#/lib/auth'
 import { supabase } from '#/lib/supabase'
 
@@ -18,23 +20,41 @@ function CrewHome() {
   const { session, hasWorkerRecord, memberships, refresh } = useAuth()
   const isOperative = memberships.some((m) => m.role === 'operative')
   const [assignments, setAssignments] = useState<Assignment[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (!session) return
+    setLoadError(null)
     supabase()
       .from('job_assignments')
       .select('role, job:jobs(id, status, scheduled_start, scheduled_end)')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
-      .then(({ data }) => setAssignments((data ?? []) as Assignment[]))
-  }, [session?.user.id])
+      .then(
+        ({ data, error }) => {
+          // A failed load is not "no jobs": with no signal, say so rather than tell someone they have no work.
+          if (error) return setLoadError(friendlyError(error))
+          setAssignments((data ?? []) as Assignment[])
+        },
+        (e: unknown) => setLoadError(friendlyError(e)),
+      )
+  }, [session?.user.id, attempt])
 
   if (!hasWorkerRecord && !isOperative) return <JoinCrew onDone={refresh} />
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl">Your jobs</h1>
-      {assignments === null ? (
+      <InstallCard />
+      {loadError && assignments === null ? (
+        <div className="space-y-3">
+          <ErrorNote message={loadError} />
+          <button className="btn btn-ghost" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
+        </div>
+      ) : assignments === null ? (
         <p className="text-ink-2">Loading…</p>
       ) : assignments.length === 0 ? (
         <Empty title="No jobs assigned yet">When your company assigns you a job it will appear here.</Empty>

@@ -65,12 +65,12 @@ function AdminPayments() {
                 {p.status === 'pending' ? (
                   <div className="flex gap-1">
                     <input
-                      className="field !min-h-[36px] w-32 text-xs"
+                      className="field w-32 text-xs"
                       placeholder="Bank ref"
                       value={refs[p.id] ?? ''}
                       onChange={(e) => setRefs((r) => ({ ...r, [p.id]: e.target.value }))}
                     />
-                    <button className="btn btn-primary !min-h-[36px] text-xs" disabled={held} onClick={() => void markPaid(p.id)}>
+                    <button className="btn btn-primary text-xs" disabled={held} onClick={() => void markPaid(p.id)}>
                       {['escrow_hold', 'direct_debit', 'invoice'].includes(p.kind) ? 'Received' : 'Paid'}
                     </button>
                   </div>

@@ -75,7 +75,7 @@ function ProJobs() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge value={j.status} />
-                  <Link to="/crew/$jobId" params={{ jobId: j.id }} className="text-sm font-semibold text-primary">
+                  <Link to="/crew/$jobId" params={{ jobId: j.id }} className="link-action text-sm font-semibold text-primary">
                     Job sheet
                   </Link>
                 </div>
@@ -137,7 +137,7 @@ function JobCard({ job, members, onChange }: { job: JobRow; members: Member[]; o
         </div>
         <div className="flex items-center gap-3">
           <Badge value={job.status} />
-          <Link to="/crew/$jobId" params={{ jobId: job.id }} className="text-sm font-semibold text-primary">
+          <Link to="/crew/$jobId" params={{ jobId: job.id }} className="link-action text-sm font-semibold text-primary">
             Job sheet
           </Link>
         </div>

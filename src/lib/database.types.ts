@@ -19,9 +19,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           draft: Json
+          final_draft: Json | null
           id: string
           kind: string
           org_id: string
+          reject_reason: string | null
+          result_brief_id: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           source: Json
@@ -31,9 +34,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           draft?: Json
+          final_draft?: Json | null
           id?: string
           kind?: string
           org_id: string
+          reject_reason?: string | null
+          result_brief_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source?: Json
@@ -43,15 +49,25 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           draft?: Json
+          final_draft?: Json | null
           id?: string
           kind?: string
           org_id?: string
+          reject_reason?: string | null
+          result_brief_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source?: Json
           status?: Database["public"]["Enums"]["approval_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "approval_queue_result_brief_id_fkey"
+            columns: ["result_brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "approval_queue_org_id_fkey"
             columns: ["org_id"]
@@ -699,6 +715,92 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_settings: {
+        Row: {
+          email_enabled: boolean
+          email_muted: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email_enabled?: boolean
+          email_muted?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email_enabled?: boolean
+          email_muted?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          dedupe_key: string | null
+          email_attempts: number
+          email_error: string | null
+          email_next_at: string | null
+          email_sent_at: string | null
+          email_status: string
+          event: string
+          id: string
+          link: string | null
+          org_id: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          category: string
+          created_at?: string
+          dedupe_key?: string | null
+          email_attempts?: number
+          email_error?: string | null
+          email_next_at?: string | null
+          email_sent_at?: string | null
+          email_status?: string
+          event: string
+          id?: string
+          link?: string | null
+          org_id?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          dedupe_key?: string | null
+          email_attempts?: number
+          email_error?: string | null
+          email_next_at?: string | null
+          email_sent_at?: string | null
+          email_status?: string
+          event?: string
+          id?: string
+          link?: string | null
+          org_id?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organisations"
@@ -1510,6 +1612,16 @@ export type Database = {
         }
         Returns: string
       }
+      approve_brief_draft: {
+        Args: {
+          p_draft: Json
+          p_item: string
+          p_site?: string
+          p_site_lat?: number
+          p_site_lng?: number
+        }
+        Returns: string
+      }
       approve_job: { Args: { p_job: string }; Returns: undefined }
       check_in: {
         Args: { p_job: string; p_lat: number; p_lng: number }
@@ -1556,6 +1668,10 @@ export type Database = {
       }
       haversine_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
+        Returns: number
+      }
+      mark_notifications_read: {
+        Args: { p_ids?: string[] }
         Returns: number
       }
       mark_payment_paid: {
@@ -1611,6 +1727,10 @@ export type Database = {
           verification_tier: number
         }[]
       }
+      reject_brief_draft: {
+        Args: { p_item: string; p_reason?: string }
+        Returns: undefined
+      }
       respond_to_shift: {
         Args: { p_accept: boolean; p_shift: string }
         Returns: undefined
@@ -1622,6 +1742,22 @@ export type Database = {
       submit_quote: {
         Args: { p_quote: string; p_valid_days?: number }
         Returns: Json
+      }
+      worker_claim_notification_emails: {
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          category: string
+          created_at: string
+          email: string
+          id: string
+          link: string
+          title: string
+        }[]
+      }
+      worker_finish_notification_email: {
+        Args: { p_error?: string; p_id: string; p_sent: boolean }
+        Returns: undefined
       }
     }
     Enums: {

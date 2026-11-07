@@ -1,0 +1,47 @@
+{
+  "title": "Weekly surgery clean",
+  "site": {
+    "name": "Harbour Dental",
+    "address": "1 Quay Street",
+    "postcode": "CO1 1AA",
+    "town": "Colchester",
+    "access_notes": "Key safe"
+  },
+  "visits": {
+    "days": [
+      "tue",
+      "thu"
+    ],
+    "start_time": "18:00"
+  },
+  "sections": [
+    {
+      "name": "Clinical",
+      "areas": [
+        {
+          "name": "Surgery 1",
+          "area_type": "clinical",
+          "minutes": 45,
+          "minutes_source": "stated",
+          "standards": [
+            "Surfaces disinfected",
+            "Floor mopped dry"
+          ]
+        },
+        {
+          "name": "Waiting room",
+          "area_type": "reception",
+          "minutes": 20,
+          "minutes_source": "estimated",
+          "standards": []
+        }
+      ]
+    }
+  ],
+  "assumptions": [
+    "Waiting room minutes estimated"
+  ],
+  "questions": [
+    "Is there a second surgery?"
+  ]
+}

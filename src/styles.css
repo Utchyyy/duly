@@ -70,6 +70,12 @@ h3 {
   background: var(--color-card);
   color: var(--color-ink);
 }
+/* Inline text links that act as controls still get a 44px hit area. */
+.link-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
 .field {
   width: 100%;
   min-height: 44px;

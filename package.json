@@ -11,10 +11,16 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "draft:smoke": "node scripts/smoke-draft.ts",
+    "verify:crew": "node scripts/verify-crew-offline.mjs && node scripts/verify-crew-outbox-idb.mjs && node scripts/verify-crew-photos.mjs",
+    "test:unit": "node --test \"src/**/*.test.ts\"",
+    "test:db": "supabase/tests/run.sh",
     "format": "prettier --write . && eslint --fix",
     "check": "prettier --check ."
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "2.119.0",
     "@tailwindcss/vite": "^4.1.18",

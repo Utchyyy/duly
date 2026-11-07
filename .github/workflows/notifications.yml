@@ -1,0 +1,36 @@
+name: Send notification emails
+
+# Calls the app every few minutes so queued notification emails go out. The app drains the queue itself; this only
+# knocks on the door. Set two repository secrets to switch it on:
+#   APP_URL      the app's public address, e.g. https://duly.example (no trailing slash)
+#   CRON_SECRET  the same value as the CRON_SECRET set in the app's server environment
+# Until both exist this does nothing. GitHub may run scheduled jobs a few minutes late, so emails can lag a little;
+# the in-app notifications are instant. On a Vercel plan with per-minute cron, vercel.json crons can replace this.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: notification-emails
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ask the app to send queued emails
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::notice::APP_URL and CRON_SECRET are not set, so nothing was sent."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 120 -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${APP_URL%/}/api/notifications/send"
+          echo

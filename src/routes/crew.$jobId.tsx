@@ -1,8 +1,11 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
+import { useCrewOutbox } from '#/components/CrewDevice'
 import { PhotoStrip, useSignedUrls } from '#/components/Evidence'
 import type { EvidenceRow } from '#/components/Evidence'
 import { Badge, ErrorNote, Loading } from '#/components/ui'
+import { useAuth } from '#/lib/auth'
+import { friendlyError } from '#/lib/crew/outbox'
 import { must, position, useLoad, when } from '#/lib/format'
 import { parseSchedule } from '#/lib/schedule'
 import type { Area } from '#/lib/schedule'
@@ -37,11 +40,23 @@ function JobSheet() {
     }
   }, [jobId])
   const urls = useSignedUrls(data?.evidence)
+  const outbox = useCrewOutbox()
+  const waitingPhotos = outbox.entries.filter((e) => e.jobId === jobId).length
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [triedWhileWaiting, setTriedWhileWaiting] = useState(false)
 
-  if (error) return <ErrorNote message={error} />
+  if (error && !data) {
+    return (
+      <div className="space-y-3">
+        <ErrorNote message={friendlyError(error)} />
+        <button className="btn btn-ghost" onClick={reload}>
+          Try again
+        </button>
+      </div>
+    )
+  }
   if (!data) return <Loading />
   const { job } = data
   const working = job.status === 'in_progress'
@@ -51,9 +66,15 @@ function JobSheet() {
     setBusy(true)
     setActionError(null)
     const pos = await position()
-    const { data: res, error: err } = await supabase().rpc('check_in', { p_job: jobId, p_lat: pos.lat as number, p_lng: pos.lng as number })
+    const { data: res, error: err } = await supabase()
+      .rpc('check_in', { p_job: jobId, p_lat: pos.lat as number, p_lng: pos.lng as number })
+      .then(
+        (r) => r,
+        (e: unknown) => ({ data: null, error: { message: friendlyError(e) } }),
+      )
     setBusy(false)
-    if (err) return setActionError(err.message)
+    // Checking in records the time and place as "now", so it is never queued: it needs a real connection.
+    if (err) return setActionError(friendlyError(err))
     const r = (res ?? {}) as { within_geofence: boolean | null; late_minutes: number }
     setMessage(
       r.within_geofence === false
@@ -66,12 +87,19 @@ function JobSheet() {
   }
 
   async function complete() {
-    setBusy(true)
     setActionError(null)
+    if (waitingPhotos > 0) return setTriedWhileWaiting(true)
+    setTriedWhileWaiting(false)
+    setBusy(true)
     const pos = await position()
-    const { error: err } = await supabase().rpc('complete_job', { p_job: jobId, p_lat: pos.lat as number, p_lng: pos.lng as number })
+    const { error: err } = await supabase()
+      .rpc('complete_job', { p_job: jobId, p_lat: pos.lat as number, p_lng: pos.lng as number })
+      .then(
+        (r) => r,
+        (e: unknown) => ({ data: null, error: { message: friendlyError(e) } }),
+      )
     setBusy(false)
-    if (err) return setActionError(err.message)
+    if (err) return setActionError(friendlyError(err))
     setMessage('Done. The client has been asked to check the work.')
     reload()
   }
@@ -111,7 +139,13 @@ function JobSheet() {
       </div>
 
       {message && <p className="rounded-lg bg-tint p-3 text-sm text-primary">{message}</p>}
-      <ErrorNote message={actionError} />
+      <ErrorNote
+        message={
+          triedWhileWaiting && waitingPhotos > 0
+            ? `${waitingPhotos} photo${waitingPhotos === 1 ? ' is' : 's are'} still waiting to upload. Finish once they have gone, which needs a signal.`
+            : (actionError ?? (error ? `We couldn't refresh this job just now, so what you see may be out of date. ${friendlyError(error)}` : null))
+        }
+      />
 
       {beforeStart && (
         <button className="btn btn-primary w-full" disabled={busy} onClick={() => void checkIn()}>
@@ -174,6 +208,9 @@ function AreaCard({
   urls: Record<string, string>
   onChange: () => void
 }) {
+  const { session } = useAuth()
+  const outbox = useCrewOutbox()
+  const saved = outbox.entries.filter((e) => e.jobId === jobId && e.areaId === area.id)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
@@ -188,28 +225,38 @@ function AreaCard({
       : await db
           .from('area_results')
           .upsert({ job_id: jobId, area_id: area.id, standard_id: std, done_by_operative: true }, { onConflict: 'job_id,area_id,standard_id' })
-    if (err) setError(err.message)
+    if (err) return setError(friendlyError(err))
     onChange()
   }
 
   async function upload(file: File | undefined, kind: 'photo_before' | 'photo_after') {
     if (!file) return
+    const userId = session?.user.id
+    if (!userId) return setError('Please sign in again.')
     setBusy(true)
     setError(null)
+    setNote(null)
     try {
+      // Where and when the photo was taken is fixed now, so a late upload still records the real time and place.
       const pos = await position()
       const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : file.type === 'image/heic' ? 'heic' : 'jpg'
-      const path = `${jobId}/${area.id}/${Date.now()}-${kind}.${ext}`
-      const up = await supabase().storage.from('evidence').upload(path, file, { contentType: file.type || 'image/jpeg' })
-      if (up.error) throw new Error(up.error.message)
-      const { data: user } = await supabase().auth.getUser()
-      const ins = await supabase()
-        .from('evidence')
-        .insert({ job_id: jobId, area_id: area.id, kind, storage_path: path, taken_at: new Date().toISOString(), lat: pos.lat, lng: pos.lng, uploaded_by: user.user?.id })
-      if (ins.error) throw new Error(ins.error.message)
-      onChange()
+      const outcome = await outbox.submit({
+        id: crypto.randomUUID(),
+        userId,
+        jobId,
+        areaId: area.id,
+        kind,
+        path: `${jobId}/${area.id}/${Date.now()}-${kind}.${ext}`,
+        mime: file.type || 'image/jpeg',
+        blob: file,
+        lat: pos.lat,
+        lng: pos.lng,
+        takenAt: new Date().toISOString(),
+      })
+      if (outcome === 'sent') onChange()
+      else setNote('Saved on this phone. It will upload as soon as you have a signal.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(friendlyError(err))
     }
     setBusy(false)
   }
@@ -219,7 +266,7 @@ function AreaCard({
     const { error: err } = await supabase()
       .from('job_events')
       .insert({ job_id: jobId, kind: 'robot_handoff', actor: user.user?.id, data: { area_id: area.id, area: area.name } })
-    if (err) return setError(err.message)
+    if (err) return setError(friendlyError(err))
     setNote('Robot assist logged for this area.')
   }
 
@@ -256,6 +303,13 @@ function AreaCard({
             Robot assist
           </button>
         </div>
+      )}
+      {saved.length > 0 && (
+        <p className="rounded-lg bg-line/50 p-2 text-xs text-ink-2">
+          {saved.filter((e) => e.status === 'waiting').length > 0 &&
+            `${saved.filter((e) => e.status === 'waiting').length} photo${saved.filter((e) => e.status === 'waiting').length === 1 ? '' : 's'} saved on this phone, waiting to upload. `}
+          {saved.some((e) => e.status === 'failed') && 'One could not be sent: see the notice at the top.'}
+        </p>
       )}
       {note && <p className="text-xs text-primary">{note}</p>}
       <ErrorNote message={error} />

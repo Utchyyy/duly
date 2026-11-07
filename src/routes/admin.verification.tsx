@@ -90,12 +90,12 @@ function AdminVerification() {
                     <div className="flex items-center gap-2">
                       <Badge value={c.status} />
                       {c.status !== 'verified' && (
-                        <button className="btn btn-primary !min-h-[36px] text-xs" onClick={() => void setClaim(c.id, 'verified')}>
+                        <button className="btn btn-primary text-xs" onClick={() => void setClaim(c.id, 'verified')}>
                           Verify
                         </button>
                       )}
                       {c.status !== 'rejected' && (
-                        <button className="btn btn-ghost !min-h-[36px] text-xs" onClick={() => void setClaim(c.id, 'rejected')}>
+                        <button className="btn btn-ghost text-xs" onClick={() => void setClaim(c.id, 'rejected')}>
                           Reject
                         </button>
                       )}

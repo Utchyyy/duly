@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useAuth } from '#/lib/auth'
+import { NotificationBell } from './Notifications'
 
 function Wordmark({ suffix, light }: { suffix?: string; light?: boolean }) {
   return (
@@ -15,9 +16,12 @@ function AccountButton({ light }: { light?: boolean }) {
   const { session } = useAuth()
   if (!session) return null
   return (
-    <Link to="/account" className={`inline-flex min-h-[44px] items-center text-sm font-medium ${light ? 'text-pro-ink' : 'text-ink-2'}`}>
-      Account
-    </Link>
+    <span className="inline-flex items-center gap-1">
+      <NotificationBell light={light} />
+      <Link to="/account" className={`inline-flex min-h-[44px] items-center text-sm font-medium ${light ? 'text-pro-ink' : 'text-ink-2'}`}>
+        Account
+      </Link>
+    </span>
   )
 }
 
@@ -26,9 +30,9 @@ function PasswordNudge() {
   const { session } = useAuth()
   if (!session || session.user.user_metadata.has_password) return null
   return (
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-tint px-4 py-3 text-sm text-primary">
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-x-2 rounded-xl bg-tint px-4 py-1 text-sm text-primary">
       <span>Set a password so you can sign in without waiting for a code.</span>
-      <Link to="/account" className="font-semibold underline">
+      <Link to="/account" className="link-action font-semibold underline">
         Set password
       </Link>
     </div>
