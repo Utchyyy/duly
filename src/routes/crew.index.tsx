@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { MyChecks, ShiftOffers } from '#/components/CrewExtras'
 import { Empty } from '#/components/Shells'
 import { Badge } from '#/components/ui'
 import { useAuth } from '#/lib/auth'
@@ -62,6 +63,8 @@ function CrewHome() {
           )}
         </ul>
       )}
+      {hasWorkerRecord && <ShiftOffers />}
+      {hasWorkerRecord && <MyChecks />}
     </div>
   )
 }

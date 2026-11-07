@@ -649,6 +649,7 @@ export type Database = {
           postcode_pattern: string | null
           tax_name: string | null
           tax_rate: number | null
+          timezone: string
         }
         Insert: {
           code: string
@@ -660,6 +661,7 @@ export type Database = {
           postcode_pattern?: string | null
           tax_name?: string | null
           tax_rate?: number | null
+          timezone?: string
         }
         Update: {
           code?: string
@@ -671,6 +673,7 @@ export type Database = {
           postcode_pattern?: string | null
           tax_name?: string | null
           tax_rate?: number | null
+          timezone?: string
         }
         Relationships: []
       }
@@ -1556,6 +1559,10 @@ export type Database = {
         Args: { p_payment: string; p_reference: string }
         Returns: undefined
       }
+      offer_shift: {
+        Args: { p_shift: string; p_worker: string }
+        Returns: undefined
+      }
       org_member_emails: {
         Args: { p_org: string }
         Returns: {
@@ -1600,6 +1607,14 @@ export type Database = {
           rank: number
           verification_tier: number
         }[]
+      }
+      respond_to_shift: {
+        Args: { p_accept: boolean; p_shift: string }
+        Returns: undefined
+      }
+      schedule_visits: {
+        Args: { p_contract: string; p_weeks?: number }
+        Returns: number
       }
       submit_quote: {
         Args: { p_quote: string; p_valid_days?: number }

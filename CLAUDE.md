@@ -18,7 +18,8 @@ Duly is a verified cleaning marketplace. Surfaces: buyer app `/`, Duly for Busin
 - Access helpers (`is_member`, `has_org_role`, `can_see_job`, …) are SECURITY DEFINER functions in the `private` schema, which the API does not expose. Policies call them.
 - The only callable RPCs are in `public`, and each checks access itself:
   - Matching and pricing: `rank_vendors`, `price_quote`, `rank_candidates`, `demand_by_town`, `corridor_suggestions`
-  - Workflow: `create_buyer_org`, `submit_quote`, `decline_quote`, `accept_quote`, `check_in`, `complete_job`, `approve_job`, `mark_payment_paid`
+  - Workflow: `create_buyer_org`, `submit_quote`, `decline_quote`, `accept_quote`, `schedule_visits`, `check_in`, `complete_job`, `approve_job`, `mark_payment_paid`
+  - WFX shifts: `offer_shift`, `respond_to_shift` (WIIx score computed by trigger from the four ratings)
   - People: `add_member`, `org_member_emails`
 - Triggers guard what direct writes can't be trusted with: job status/value (`protect_job_fields`), verdicts (`protect_area_result_fields`), verification tier (`protect_org_fields`), evidence geofence, issue SLA and dispute holds.
 

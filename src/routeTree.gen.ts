@@ -20,6 +20,7 @@ import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPeopleRouteImport } from './routes/admin.people'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminVerificationRouteImport } from './routes/admin.verification'
+import { Route as AdminWorkersRouteImport } from './routes/admin.workers'
 import { Route as BriefsBriefIdRouteImport } from './routes/briefs.$briefId'
 import { Route as CrewIndexRouteImport } from './routes/crew.index'
 import { Route as CrewJobIdRouteImport } from './routes/crew.$jobId'
@@ -29,6 +30,7 @@ import { Route as ProJobsRouteImport } from './routes/pro.jobs'
 import { Route as ProPayoutsRouteImport } from './routes/pro.payouts'
 import { Route as ProProfileRouteImport } from './routes/pro.profile'
 import { Route as ProQuotesRouteImport } from './routes/pro.quotes'
+import { Route as ProShiftsRouteImport } from './routes/pro.shifts'
 import { Route as ProTeamRouteImport } from './routes/pro.team'
 import { Route as ProVerificationRouteImport } from './routes/pro.verification'
 import { Route as SitesNewRouteImport } from './routes/sites.new'
@@ -88,6 +90,11 @@ const AdminVerificationRoute = AdminVerificationRouteImport.update({
   path: '/verification',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminWorkersRoute = AdminWorkersRouteImport.update({
+  id: '/workers',
+  path: '/workers',
+  getParentRoute: () => AdminRoute,
+} as any)
 const BriefsBriefIdRoute = BriefsBriefIdRouteImport.update({
   id: '/briefs/$briefId',
   path: '/briefs/$briefId',
@@ -133,6 +140,11 @@ const ProQuotesRoute = ProQuotesRouteImport.update({
   path: '/quotes',
   getParentRoute: () => ProRoute,
 } as any)
+const ProShiftsRoute = ProShiftsRouteImport.update({
+  id: '/shifts',
+  path: '/shifts',
+  getParentRoute: () => ProRoute,
+} as any)
 const ProTeamRoute = ProTeamRouteImport.update({
   id: '/team',
   path: '/team',
@@ -160,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/verification': typeof AdminVerificationRoute
+  '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
   '/crew/$jobId': typeof CrewJobIdRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -167,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/pro/payouts': typeof ProPayoutsRoute
   '/pro/profile': typeof ProProfileRoute
   '/pro/quotes': typeof ProQuotesRoute
+  '/pro/shifts': typeof ProShiftsRoute
   '/pro/team': typeof ProTeamRoute
   '/pro/verification': typeof ProVerificationRoute
   '/sites/new': typeof SitesNewRoute
@@ -182,6 +196,7 @@ export interface FileRoutesByTo {
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/verification': typeof AdminVerificationRoute
+  '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
   '/crew/$jobId': typeof CrewJobIdRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -189,6 +204,7 @@ export interface FileRoutesByTo {
   '/pro/payouts': typeof ProPayoutsRoute
   '/pro/profile': typeof ProProfileRoute
   '/pro/quotes': typeof ProQuotesRoute
+  '/pro/shifts': typeof ProShiftsRoute
   '/pro/team': typeof ProTeamRoute
   '/pro/verification': typeof ProVerificationRoute
   '/sites/new': typeof SitesNewRoute
@@ -208,6 +224,7 @@ export interface FileRoutesById {
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/verification': typeof AdminVerificationRoute
+  '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
   '/crew/$jobId': typeof CrewJobIdRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -215,6 +232,7 @@ export interface FileRoutesById {
   '/pro/payouts': typeof ProPayoutsRoute
   '/pro/profile': typeof ProProfileRoute
   '/pro/quotes': typeof ProQuotesRoute
+  '/pro/shifts': typeof ProShiftsRoute
   '/pro/team': typeof ProTeamRoute
   '/pro/verification': typeof ProVerificationRoute
   '/sites/new': typeof SitesNewRoute
@@ -235,6 +253,7 @@ export interface FileRouteTypes {
     | '/admin/people'
     | '/admin/policies'
     | '/admin/verification'
+    | '/admin/workers'
     | '/briefs/$briefId'
     | '/crew/$jobId'
     | '/jobs/$jobId'
@@ -242,6 +261,7 @@ export interface FileRouteTypes {
     | '/pro/payouts'
     | '/pro/profile'
     | '/pro/quotes'
+    | '/pro/shifts'
     | '/pro/team'
     | '/pro/verification'
     | '/sites/new'
@@ -257,6 +277,7 @@ export interface FileRouteTypes {
     | '/admin/people'
     | '/admin/policies'
     | '/admin/verification'
+    | '/admin/workers'
     | '/briefs/$briefId'
     | '/crew/$jobId'
     | '/jobs/$jobId'
@@ -264,6 +285,7 @@ export interface FileRouteTypes {
     | '/pro/payouts'
     | '/pro/profile'
     | '/pro/quotes'
+    | '/pro/shifts'
     | '/pro/team'
     | '/pro/verification'
     | '/sites/new'
@@ -282,6 +304,7 @@ export interface FileRouteTypes {
     | '/admin/people'
     | '/admin/policies'
     | '/admin/verification'
+    | '/admin/workers'
     | '/briefs/$briefId'
     | '/crew/$jobId'
     | '/jobs/$jobId'
@@ -289,6 +312,7 @@ export interface FileRouteTypes {
     | '/pro/payouts'
     | '/pro/profile'
     | '/pro/quotes'
+    | '/pro/shifts'
     | '/pro/team'
     | '/pro/verification'
     | '/sites/new'
@@ -387,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminVerificationRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/workers': {
+      id: '/admin/workers'
+      path: '/workers'
+      fullPath: '/admin/workers'
+      preLoaderRoute: typeof AdminWorkersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/briefs/$briefId': {
       id: '/briefs/$briefId'
       path: '/briefs/$briefId'
@@ -450,6 +481,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProQuotesRouteImport
       parentRoute: typeof ProRoute
     }
+    '/pro/shifts': {
+      id: '/pro/shifts'
+      path: '/shifts'
+      fullPath: '/pro/shifts'
+      preLoaderRoute: typeof ProShiftsRouteImport
+      parentRoute: typeof ProRoute
+    }
     '/pro/team': {
       id: '/pro/team'
       path: '/team'
@@ -480,6 +518,7 @@ interface AdminRouteChildren {
   AdminPeopleRoute: typeof AdminPeopleRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminVerificationRoute: typeof AdminVerificationRoute
+  AdminWorkersRoute: typeof AdminWorkersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -489,6 +528,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPeopleRoute: AdminPeopleRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
   AdminVerificationRoute: AdminVerificationRoute,
+  AdminWorkersRoute: AdminWorkersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -511,6 +551,7 @@ interface ProRouteChildren {
   ProPayoutsRoute: typeof ProPayoutsRoute
   ProProfileRoute: typeof ProProfileRoute
   ProQuotesRoute: typeof ProQuotesRoute
+  ProShiftsRoute: typeof ProShiftsRoute
   ProTeamRoute: typeof ProTeamRoute
   ProVerificationRoute: typeof ProVerificationRoute
   ProIndexRoute: typeof ProIndexRoute
@@ -521,6 +562,7 @@ const ProRouteChildren: ProRouteChildren = {
   ProPayoutsRoute: ProPayoutsRoute,
   ProProfileRoute: ProProfileRoute,
   ProQuotesRoute: ProQuotesRoute,
+  ProShiftsRoute: ProShiftsRoute,
   ProTeamRoute: ProTeamRoute,
   ProVerificationRoute: ProVerificationRoute,
   ProIndexRoute: ProIndexRoute,

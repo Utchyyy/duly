@@ -12,6 +12,7 @@ const nav = [
   { label: 'Verification', to: '/admin/verification' },
   { label: 'Issues', to: '/admin/issues' },
   { label: 'Payments ledger', to: '/admin/payments' },
+  { label: 'Workers and DBS', to: '/admin/workers' },
   { label: 'Organisations and people', to: '/admin/people' },
   { label: 'Markets and policies', to: '/admin/policies' },
 ]

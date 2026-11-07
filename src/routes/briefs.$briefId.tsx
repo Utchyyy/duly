@@ -38,16 +38,17 @@ function Brief() {
         .eq('id', briefId)
         .single(),
     )
-    const [version, quotes, library] = await Promise.all([
-      db.from('brief_versions').select('version, schedule, notes, locked_at').eq('brief_id', briefId).eq('version', brief.current_version).single(),
+    const [version, quotes, library, contracts] = await Promise.all([
+      db.from('brief_versions').select('version, schedule, notes, locked_at, preferred_days, preferred_start').eq('brief_id', briefId).eq('version', brief.current_version).single(),
       db
         .from('quotes')
         .select('id, status, total, currency, lines, valid_until, brief_version, vendor:organisations(id, name)')
         .eq('brief_id', briefId)
         .order('created_at'),
       db.from('standards_library').select('id, segment, area_type, text'),
+      db.from('contracts').select('id, status, brief_version, billing, vendor:organisations!contracts_vendor_org_id_fkey(name)').eq('brief_id', briefId),
     ])
-    return { brief, version: must(version), quotes: must(quotes), library: must(library) }
+    return { brief, version: must(version), quotes: must(quotes), library: must(library), contracts: must(contracts) }
   }, [briefId])
 
   if (error) return <ErrorNote message={error} />
@@ -75,6 +76,8 @@ function Brief() {
       {locked ? (
         <>
           <ScheduleView schedule={parseSchedule(version.schedule)} />
+          <VisitsSummary days={version.preferred_days} start={version.preferred_start} notes={version.notes} />
+          <Contracts contracts={data.contracts} hasPattern={Boolean(version.preferred_days?.length && version.preferred_start)} />
           <Vendors
             briefId={brief.id}
             version={version.version}
@@ -83,7 +86,11 @@ function Brief() {
             currency={currency}
             onChange={reload}
           />
-          <Quotes quotes={data.quotes.filter((q) => q.brief_version === version.version)} currency={currency} />
+          <Quotes
+            quotes={data.quotes.filter((q) => q.brief_version === version.version)}
+            currency={currency}
+            hasPattern={Boolean(version.preferred_days?.length && version.preferred_start)}
+          />
           <NewVersion briefId={brief.id} version={version.version} schedule={version.schedule} onDone={reload} />
         </>
       ) : (
@@ -91,6 +98,9 @@ function Brief() {
           briefId={brief.id}
           version={version.version}
           initial={parseSchedule(version.schedule)}
+          initialDays={version.preferred_days ?? []}
+          initialStart={version.preferred_start?.slice(0, 5) ?? ''}
+          initialNotes={version.notes ?? ''}
           library={data.library}
           segment={brief.org?.segment ?? 'homeowner'}
           onLocked={reload}
@@ -131,6 +141,9 @@ function Editor({
   briefId,
   version,
   initial,
+  initialDays,
+  initialStart,
+  initialNotes,
   library,
   segment,
   onLocked,
@@ -138,11 +151,17 @@ function Editor({
   briefId: string
   version: number
   initial: Schedule
+  initialDays: string[]
+  initialStart: string
+  initialNotes: string
   library: Lib[]
   segment: string
   onLocked: () => void
 }) {
   const [schedule, setSchedule] = useState<Schedule>(initial.length ? initial : [{ name: 'Areas', areas: [] }])
+  const [days, setDays] = useState<string[]>(initialDays)
+  const [startTime, setStartTime] = useState(initialStart)
+  const [notes, setNotes] = useState(initialNotes)
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
   const [confirmLock, setConfirmLock] = useState(false)
@@ -159,7 +178,12 @@ function Editor({
     setError(null)
     const { error: err } = await supabase()
       .from('brief_versions')
-      .update({ schedule: schedule as unknown as Json })
+      .update({
+        schedule: schedule as unknown as Json,
+        preferred_days: days.length ? days : null,
+        preferred_start: startTime || null,
+        notes: notes.trim() || null,
+      })
       .eq('brief_id', briefId)
       .eq('version', version)
     setBusy(false)
@@ -176,6 +200,7 @@ function Editor({
     if (areas.length === 0) return setError('Add at least one area first.')
     if (areas.some((a) => !a.minutes || a.minutes <= 0)) return setError('Every area needs a time in minutes.')
     if (areas.some((a) => a.standards.length === 0)) return setError('Every area needs at least one standard, so the clean can be checked.')
+    if (days.length > 0 && !startTime) return setError('Add a start time for the regular visits.')
     if (!(await save())) return
     setBusy(true)
     const db = supabase()
@@ -288,6 +313,53 @@ function Editor({
       <button type="button" className="btn btn-ghost" onClick={() => update((s) => [...s, { name: 'New section', areas: [] }])}>
         Add a section
       </button>
+
+      <div className="card space-y-4 p-4">
+        <h2 className="text-xl">Regular visits</h2>
+        <p className="text-sm text-ink-2">Leave the days blank for a one-off clean. Pick days to have Duly book the visits for you after you accept a quote.</p>
+        <div className="flex flex-wrap gap-2">
+          {weekDays.map((d) => {
+            const on = days.includes(d.code)
+            return (
+              <button
+                key={d.code}
+                type="button"
+                aria-pressed={on}
+                className={`btn !min-h-[44px] !px-3 text-sm ${on ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => {
+                  setDays((x) => (on ? x.filter((y) => y !== d.code) : [...x, d.code]))
+                  setDirty(true)
+                }}
+              >
+                {d.text}
+              </button>
+            )
+          })}
+        </div>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">Start time</span>
+          <input
+            type="time"
+            className="field w-40"
+            value={startTime}
+            onChange={(e) => {
+              setStartTime(e.target.value)
+              setDirty(true)
+            }}
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">Notes for the cleaner</span>
+          <textarea
+            className="field min-h-[72px] py-2"
+            value={notes}
+            onChange={(e) => {
+              setNotes(e.target.value)
+              setDirty(true)
+            }}
+          />
+        </label>
+      </div>
 
       <div className="card sticky bottom-3 space-y-3 p-4 shadow-lg">
         <p className="text-sm text-ink-2">
@@ -467,7 +539,7 @@ function Vendors({
   )
 }
 
-function Quotes({ quotes, currency }: { quotes: QuoteRow[]; currency: string }) {
+function Quotes({ quotes, currency, hasPattern }: { quotes: QuoteRow[]; currency: string; hasPattern: boolean }) {
   const navigate = useNavigate()
   const submitted = quotes.filter((q) => q.status === 'submitted' || q.status === 'accepted')
   const tomorrow = new Date(Date.now() + 86400000)
@@ -484,6 +556,9 @@ function Quotes({ quotes, currency }: { quotes: QuoteRow[]; currency: string }) 
     const { data, error: err } = await supabase().rpc('accept_quote', { p_quote: quoteId, p_start: new Date(start).toISOString() })
     setBusy(false)
     if (err) return setError(err.message)
+    // Regular visits: book the next four weeks straight away (no-op for one-off briefs).
+    const job = await supabase().from('jobs').select('contract_id').eq('id', data).single()
+    if (job.data?.contract_id && hasPattern) await supabase().rpc('schedule_visits', { p_contract: job.data.contract_id, p_weeks: 4 })
     await navigate({ to: '/jobs/$jobId', params: { jobId: data } })
   }
 
@@ -569,5 +644,73 @@ function NewVersion({ briefId, version, schedule, onDone }: { briefId: string; v
       </button>
       <ErrorNote message={error} />
     </div>
+  )
+}
+
+const weekDays = [
+  { code: 'mon', text: 'Mon' },
+  { code: 'tue', text: 'Tue' },
+  { code: 'wed', text: 'Wed' },
+  { code: 'thu', text: 'Thu' },
+  { code: 'fri', text: 'Fri' },
+  { code: 'sat', text: 'Sat' },
+  { code: 'sun', text: 'Sun' },
+]
+
+function VisitsSummary({ days, start, notes }: { days: string[] | null; start: string | null; notes: string | null }) {
+  if (!days?.length && !notes) return null
+  return (
+    <div className="card space-y-1 p-4 text-sm">
+      {days?.length ? (
+        <p>
+          <span className="font-semibold">Regular visits:</span>{' '}
+          {weekDays.filter((d) => days.includes(d.code)).map((d) => d.text).join(', ')} at {start?.slice(0, 5)}
+        </p>
+      ) : null}
+      {notes && (
+        <p>
+          <span className="font-semibold">Notes:</span> {notes}
+        </p>
+      )}
+    </div>
+  )
+}
+
+type ContractRow = { id: string; status: string; brief_version: number; billing: string; vendor: { name: string } | null }
+
+function Contracts({ contracts, hasPattern }: { contracts: ContractRow[]; hasPattern: boolean }) {
+  const [msg, setMsg] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const active = contracts.filter((c) => c.status === 'active')
+  if (active.length === 0) return null
+
+  async function schedule(id: string) {
+    setError(null)
+    setMsg(null)
+    const { data, error: err } = await supabase().rpc('schedule_visits', { p_contract: id, p_weeks: 4 })
+    if (err) return setError(err.message)
+    setMsg(data === 0 ? 'The next four weeks are already booked.' : `Booked ${data} more visit(s).`)
+  }
+
+  return (
+    <Section title="Booked with">
+      {active.map((c) => (
+        <div key={c.id} className="card flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <p className="font-semibold">{c.vendor?.name}</p>
+            <p className="text-sm text-ink-2">
+              Version {c.brief_version} · {c.billing === 'monthly' ? 'Monthly plan' : 'Paid per clean'}
+            </p>
+          </div>
+          {hasPattern && (
+            <button className="btn btn-ghost text-sm" onClick={() => void schedule(c.id)}>
+              Book the next 4 weeks
+            </button>
+          )}
+        </div>
+      ))}
+      {msg && <p className="rounded-lg bg-tint p-3 text-sm text-primary">{msg}</p>}
+      <ErrorNote message={error} />
+    </Section>
   )
 }

@@ -15,7 +15,7 @@ function ProJobs() {
   const { data, error, reload } = useLoad(async () => {
     const db = supabase()
     const since = new Date(Date.now() - 14 * 86400000).toISOString()
-    const [jobs, members] = await Promise.all([
+    const [jobs, members, contracts] = await Promise.all([
       db
         .from('jobs')
         .select('id, status, scheduled_start, value, currency, site:sites(name, town, postcode, access_notes), job_assignments(user_id, role)')
@@ -23,8 +23,14 @@ function ProJobs() {
         .gte('scheduled_start', since)
         .order('scheduled_start'),
       db.rpc('org_member_emails', { p_org: vendor.id }),
+      db
+        .from('contracts')
+        .select('id, billing, starts_on, brief_id, brief_version, buyer:organisations!contracts_buyer_org_id_fkey(name), site:sites(name, town)')
+        .eq('vendor_org_id', vendor.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false }),
     ])
-    return { jobs: must(jobs), members: must(members) as Member[] }
+    return { jobs: must(jobs), members: must(members) as Member[], contracts: must(contracts) }
   }, [vendor.id])
 
   if (error) return <ErrorNote message={error} />
@@ -47,6 +53,15 @@ function ProJobs() {
           </div>
         )}
       </Section>
+      {data.contracts.length > 0 && (
+        <Section title="Clients">
+          <div className="space-y-2">
+            {data.contracts.map((c) => (
+              <ContractRow key={c.id} contract={c} onChange={reload} />
+            ))}
+          </div>
+        </Section>
+      )}
       {done.length > 0 && (
         <Section title="Last two weeks">
           <div className="space-y-2">
@@ -151,6 +166,44 @@ function JobCard({ job, members, onChange }: { job: JobRow; members: Member[]; o
           Assign
         </button>
       </div>
+      <ErrorNote message={error} />
+    </div>
+  )
+}
+
+type ContractData = {
+  id: string
+  billing: string
+  starts_on: string | null
+  buyer: { name: string } | null
+  site: { name: string; town: string | null } | null
+}
+
+function ContractRow({ contract, onChange }: { contract: ContractData; onChange: () => void }) {
+  const [msg, setMsg] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  async function book() {
+    setError(null)
+    setMsg(null)
+    const { data, error: err } = await supabase().rpc('schedule_visits', { p_contract: contract.id, p_weeks: 4 })
+    if (err) return setError(err.message)
+    setMsg(data === 0 ? 'Already booked for the next four weeks.' : `Booked ${data} visit(s).`)
+    onChange()
+  }
+  return (
+    <div className="card space-y-2 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-semibold">{contract.buyer?.name}</p>
+          <p className="text-sm text-ink-2">
+            {contract.site?.name}, {contract.site?.town} · {contract.billing === 'monthly' ? 'Monthly plan' : 'Per clean'}
+          </p>
+        </div>
+        <button className="btn btn-ghost text-sm" onClick={() => void book()}>
+          Book the next 4 weeks
+        </button>
+      </div>
+      {msg && <p className="text-sm text-primary">{msg}</p>}
       <ErrorNote message={error} />
     </div>
   )
