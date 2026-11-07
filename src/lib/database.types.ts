@@ -766,6 +766,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["payment_kind"]
           note: string | null
           paid_at: string | null
+          period: string | null
           provider: string
           provider_ref: string | null
           status: string
@@ -781,6 +782,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["payment_kind"]
           note?: string | null
           paid_at?: string | null
+          period?: string | null
           provider: string
           provider_ref?: string | null
           status?: string
@@ -796,6 +798,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["payment_kind"]
           note?: string | null
           paid_at?: string | null
+          period?: string | null
           provider?: string
           provider_ref?: string | null
           status?: string
@@ -1691,6 +1694,7 @@ export type Database = {
         | "direct_debit"
         | "service_credit"
         | "platform_fee"
+        | "invoice"
       quote_status:
         | "invited"
         | "submitted"
@@ -1908,6 +1912,7 @@ export const Constants = {
         "direct_debit",
         "service_credit",
         "platform_fee",
+        "invoice",
       ],
       quote_status: [
         "invited",

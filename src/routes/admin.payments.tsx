@@ -12,7 +12,7 @@ function AdminPayments() {
     let q = supabase()
       .from('payments')
       .select(
-        'id, kind, amount, currency, status, due_at, paid_at, provider_ref, note, job:jobs(status, buyer:organisations!jobs_buyer_org_id_fkey(name), vendor:organisations!jobs_vendor_org_id_fkey(name))',
+        'id, kind, amount, currency, status, due_at, paid_at, provider_ref, note, job:jobs(status, buyer:organisations!jobs_buyer_org_id_fkey(name), vendor:organisations!jobs_vendor_org_id_fkey(name)), contract:contracts(buyer:organisations!contracts_buyer_org_id_fkey(name), vendor:organisations!contracts_vendor_org_id_fkey(name))',
       )
       .order('due_at')
     if (!all) q = q.eq('status', 'pending')
@@ -48,7 +48,7 @@ function AdminPayments() {
       <Table head={['Due', 'What', 'Client → vendor', 'Amount', 'Status', '']}>
         {data.map((p) => {
           const due = p.due_at && new Date(p.due_at) <= new Date()
-          const held = p.job?.status === 'disputed' && p.kind !== 'escrow_hold'
+          const held = p.job?.status === 'disputed' && (p.kind === 'release' || p.kind === 'platform_fee')
           return (
             <tr key={p.id}>
               <td className={due && p.status === 'pending' ? 'font-semibold' : ''}>{when(p.due_at)}</td>
@@ -57,7 +57,7 @@ function AdminPayments() {
                 <span className="block text-xs text-ink-2">{p.note}</span>
               </td>
               <td>
-                {p.job?.buyer?.name} → {p.job?.vendor?.name}
+                {p.job?.buyer?.name ?? p.contract?.buyer?.name} → {p.job?.vendor?.name ?? p.contract?.vendor?.name}
               </td>
               <td>{money(p.amount, p.currency)}</td>
               <td>{held ? <Badge value="disputed">Held</Badge> : <Badge value={p.status} />}</td>
@@ -71,7 +71,7 @@ function AdminPayments() {
                       onChange={(e) => setRefs((r) => ({ ...r, [p.id]: e.target.value }))}
                     />
                     <button className="btn btn-primary !min-h-[36px] text-xs" disabled={held} onClick={() => void markPaid(p.id)}>
-                      {p.kind === 'escrow_hold' ? 'Received' : 'Paid'}
+                      {['escrow_hold', 'direct_debit', 'invoice'].includes(p.kind) ? 'Received' : 'Paid'}
                     </button>
                   </div>
                 ) : (

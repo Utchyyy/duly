@@ -2,10 +2,11 @@ import { Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { hasRole, useAuth } from '#/lib/auth'
-import { label, must, useLoad, when } from '#/lib/format'
+import { label, money, must, useLoad, when } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
 import { Empty } from './Shells'
-import { Badge, ErrorNote, Loading, Section } from './ui'
+import { TeamManager } from './TeamManager'
+import { Badge, ErrorNote, Loading, Section, Table } from './ui'
 import { VendorDirectory } from './VendorDirectory'
 
 type Segment = { code: string; name: string }
@@ -49,13 +50,14 @@ export function BuyerHome({ mode }: { mode: 'home' | 'business' }) {
       </div>
     )
   }
-  return <BuyerDashboard orgId={org.id} orgName={org.name} mode={mode} />
+  const isOwner = buyerOrgs.some((m) => m.org?.id === org.id && m.role === 'owner')
+  return <BuyerDashboard orgId={org.id} orgName={org.name} mode={mode} isOwner={isOwner} />
 }
 
-function BuyerDashboard({ orgId, orgName, mode }: { orgId: string; orgName: string; mode: 'home' | 'business' }) {
+function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgName: string; mode: 'home' | 'business'; isOwner: boolean }) {
   const { data, error } = useLoad(async () => {
     const db = supabase()
-    const [sites, briefs, jobs] = await Promise.all([
+    const [sites, briefs, jobs, perJob, perContract] = await Promise.all([
       db.from('sites').select('id, name, town, postcode').eq('org_id', orgId).order('created_at'),
       db.from('briefs').select('id, title, status, current_version, site_id, created_at').eq('buyer_org_id', orgId).order('created_at', { ascending: false }),
       db
@@ -64,8 +66,21 @@ function BuyerDashboard({ orgId, orgName, mode }: { orgId: string; orgName: stri
         .eq('buyer_org_id', orgId)
         .order('scheduled_start', { ascending: false })
         .limit(20),
+      db
+        .from('payments')
+        .select('id, kind, amount, currency, due_at, note, job:jobs!inner(buyer_org_id)')
+        .eq('job.buyer_org_id', orgId)
+        .eq('kind', 'escrow_hold')
+        .eq('status', 'pending'),
+      db
+        .from('payments')
+        .select('id, kind, amount, currency, due_at, note, contract:contracts!inner(buyer_org_id)')
+        .eq('contract.buyer_org_id', orgId)
+        .in('kind', ['direct_debit', 'invoice'])
+        .eq('status', 'pending'),
     ])
-    return { sites: must(sites), briefs: must(briefs), jobs: must(jobs) }
+    const toPay = [...must(perJob), ...must(perContract)].sort((a, b) => (a.due_at ?? '').localeCompare(b.due_at ?? ''))
+    return { sites: must(sites), briefs: must(briefs), jobs: must(jobs), toPay }
   }, [orgId])
 
   const siteName = (id: string) => data?.sites.find((s) => s.id === id)?.name ?? ''
@@ -132,6 +147,33 @@ function BuyerDashboard({ orgId, orgName, mode }: { orgId: string; orgName: stri
               </ul>
             )}
           </Section>
+          {data.toPay.length > 0 && (
+            <Section title="To pay">
+              <p className="text-sm text-ink-2">
+                Pay by bank transfer to Duly using the reference we send you. Card and Direct Debit payments are coming. Money for a
+                clean only reaches the vendor once you've approved the work.
+              </p>
+              <Table head={['What', 'Amount', 'Due']}>
+                {data.toPay.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.note ?? label(p.kind)}</td>
+                    <td>{money(p.amount, p.currency)}</td>
+                    <td>{when(p.due_at)}</td>
+                  </tr>
+                ))}
+              </Table>
+            </Section>
+          )}
+          {mode === 'business' && (
+            <Section title="Your team">
+              <TeamManager
+                orgId={orgId}
+                roles={['approver', 'viewer', 'owner']}
+                canAdd={isOwner}
+                hint="Approvers can book cleans, review work and report problems. Viewers can see everything. Ask them to sign in to Duly once first."
+              />
+            </Section>
+          )}
           <Section title="Vendors on Duly">
             <VendorDirectory />
           </Section>
