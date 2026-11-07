@@ -60,7 +60,7 @@ begin
   perform tests.as_user((f ->> 'vendor')::uuid);
   perform tests.throws(format('insert into public.memberships values (%L, %L, %L)', f ->> 'vendor_org', f ->> 'vendor', 'platform_admin'),
                        '%row-level security%', 'vendor admin cannot grant platform_admin');
-  perform tests.throws(format('update public.organisations set verification_tier = 3 where id = %L', f ->> 'vendor_org'),
-                       '%Only Duly can change%', 'vendor cannot raise its own verification tier');
+  perform tests.throws(format('update public.organisations set verification_tier = 2 where id = %L', f ->> 'vendor_org'),
+                       '%Only Duly can change%', 'vendor cannot change its own verification tier');
   perform tests.as_su();
 end $$;

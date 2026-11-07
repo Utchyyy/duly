@@ -50,8 +50,8 @@ begin
   perform tests.eq((select count(*) from storage.objects where bucket_id = 'evidence' and name = path), 1::bigint, 'Duly can read the evidence');
   perform tests.as_user((g ->> 'buyer')::uuid);
   perform tests.eq((select count(*) from storage.objects where name = path), 0::bigint, 'another client cannot read it');
-  -- Note: operatives of the same company can currently read all of that company's jobs
-  -- (private.can_see_job uses is_member on the vendor org); not asserted here.
+  perform tests.as_user((g ->> 'crew')::uuid);
+  perform tests.eq((select count(*) from storage.objects where name = path), 0::bigint, 'a colleague at the same company who is not on the job cannot read it');
   perform tests.as_user(tests.mk_user('stranger'));
   perform tests.eq((select count(*) from storage.objects where name = path), 0::bigint, 'a user with no organisation cannot read it');
   perform tests.as_anon();

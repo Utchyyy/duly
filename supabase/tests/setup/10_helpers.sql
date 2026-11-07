@@ -75,6 +75,10 @@ begin
     (vendor_org, vendor_u, 'vendor_admin'), (vendor_org, crew_u, 'operative');
   insert into public.vendor_profiles (org_id, hourly_rate, base_lat, base_lng) values (vendor_org, 20, 51.89, 0.90)
     on conflict (org_id) do update set hourly_rate = 20;
+  -- Clean-Fit is a verified vendor in these tests (Duly raises the tier, as it would in Admin).
+  perform tests.as_user(admin_u);
+  update public.organisations set verification_tier = 3 where id = vendor_org;
+  perform tests.as_su();
 
   perform tests.as_user(buyer_u);
   buyer_org := public.create_buyer_org('Test buyer', p_segment);
