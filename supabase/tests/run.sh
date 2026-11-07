@@ -13,10 +13,11 @@ run() { "${psql_admin[@]}" -d "$db" "$@"; }
 
 run -f "$here/setup/00_stubs.sql"
 for m in "$repo"/supabase/migrations/*.sql; do run -f "$m" >/dev/null; done
-# Supabase gives the API roles table privileges by default; RLS is what then limits them.
+# Mirror the parts of Supabase that exist before any migration runs: schema usage, and table privileges on
+# storage (public-table privileges for authenticated come from the migrations themselves). anon is also given
+# table access so the tests prove RLS, not missing grants, keeps signed-out visitors out.
 run -c "grant usage on schema public to anon, authenticated;
-        grant select, insert, update, delete on all tables in schema public to anon, authenticated;
-        grant usage on all sequences in schema public to anon, authenticated;
+        grant select, insert, update, delete on all tables in schema public to anon;
         grant select, insert, update, delete on storage.objects to anon, authenticated;"
 run -f "$here/setup/10_helpers.sql"
 

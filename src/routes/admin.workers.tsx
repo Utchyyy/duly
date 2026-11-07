@@ -189,7 +189,7 @@ function WorkerRow({ worker, vendors, onChange }: { worker: WorkerRowData; vendo
                 type="number"
                 min={1}
                 max={5}
-                className="field mt-1 !min-h-[40px] text-sm text-ink"
+                className="field mt-1 text-sm text-ink"
                 value={r[x.key]}
                 onChange={(e) => setR((v) => ({ ...v, [x.key]: Math.max(1, Math.min(5, Number(e.target.value))) }))}
               />

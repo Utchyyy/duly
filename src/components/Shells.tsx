@@ -26,9 +26,9 @@ function PasswordNudge() {
   const { session } = useAuth()
   if (!session || session.user.user_metadata.has_password) return null
   return (
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-tint px-4 py-3 text-sm text-primary">
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-x-2 rounded-xl bg-tint px-4 py-1 text-sm text-primary">
       <span>Set a password so you can sign in without waiting for a code.</span>
-      <Link to="/account" className="font-semibold underline">
+      <Link to="/account" className="link-action font-semibold underline">
         Set password
       </Link>
     </div>

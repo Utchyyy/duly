@@ -138,13 +138,13 @@ function Job() {
                         {reviewing ? (
                           <span className="flex gap-1">
                             <button
-                              className={`btn !min-h-[40px] text-xs ${v === 'met' ? 'btn-primary' : 'btn-ghost'}`}
+                              className={`btn text-xs ${v === 'met' ? 'btn-primary' : 'btn-ghost'}`}
                               onClick={() => void setVerdict(a.id, st.id, 'met')}
                             >
                               Met
                             </button>
                             <button
-                              className={`btn !min-h-[40px] text-xs ${v === 'not_met' ? '!bg-alert text-white' : 'btn-ghost'}`}
+                              className={`btn text-xs ${v === 'not_met' ? '!bg-alert text-white' : 'btn-ghost'}`}
                               onClick={() => void setVerdict(a.id, st.id, 'not_met')}
                             >
                               Not met

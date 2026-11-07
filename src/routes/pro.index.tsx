@@ -83,7 +83,7 @@ function ProToday() {
                   <Badge value={j.status} />
                 </td>
                 <td>
-                  <Link to="/crew/$jobId" params={{ jobId: j.id }} className="font-semibold text-primary">
+                  <Link to="/crew/$jobId" params={{ jobId: j.id }} className="link-action font-semibold text-primary">
                     Job sheet
                   </Link>
                 </td>

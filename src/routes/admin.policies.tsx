@@ -79,7 +79,7 @@ function PolicyRow({ policy, onSaved }: { policy: Policy; onSaved: () => void })
       <input
         type="number"
         step={step}
-        className="field mt-1 !min-h-[40px] text-sm text-ink"
+        className="field mt-1 text-sm text-ink"
         value={(p[k] as number | null) ?? ''}
         onChange={(e) => set(k, (e.target.value === '' ? null : Number(e.target.value)) as never)}
       />
@@ -94,7 +94,7 @@ function PolicyRow({ policy, onSaved }: { policy: Policy; onSaved: () => void })
       <div className="grid gap-3 sm:grid-cols-4">
         <label className="text-xs text-ink-2">
           Payment model
-          <select className="field mt-1 !min-h-[40px] text-sm text-ink" value={p.payment_model} onChange={(e) => set('payment_model', e.target.value)}>
+          <select className="field mt-1 text-sm text-ink" value={p.payment_model} onChange={(e) => set('payment_model', e.target.value)}>
             <option value="escrow_one_off">Escrow, per clean</option>
             <option value="monthly_in_advance">Monthly in advance</option>
             <option value="invoice_terms">Invoice terms</option>
@@ -103,7 +103,7 @@ function PolicyRow({ policy, onSaved }: { policy: Policy; onSaved: () => void })
         {num('first_release_pct', 'First release %')}
         <label className="text-xs text-ink-2">
           First release on
-          <select className="field mt-1 !min-h-[40px] text-sm text-ink" value={p.first_release_on} onChange={(e) => set('first_release_on', e.target.value)}>
+          <select className="field mt-1 text-sm text-ink" value={p.first_release_on} onChange={(e) => set('first_release_on', e.target.value)}>
             <option value="approval">Approval</option>
             <option value="check_in">Check-in</option>
             <option value="month_end">Month end</option>

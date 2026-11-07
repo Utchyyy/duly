@@ -95,7 +95,7 @@ export function SignIn({ allowSignUp, heading = 'Sign in' }: Props) {
             type="button"
             role="tab"
             aria-selected={mode === m}
-            className={`min-h-[40px] rounded-full ${mode === m ? 'bg-card text-ink shadow-sm' : 'text-ink-2'}`}
+            className={`min-h-[44px] rounded-full ${mode === m ? 'bg-card text-ink shadow-sm' : 'text-ink-2'}`}
             onClick={() => {
               setMode(m)
               setError(null)

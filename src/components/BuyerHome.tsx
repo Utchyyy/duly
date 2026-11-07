@@ -24,7 +24,7 @@ export function AreaLinks() {
   return (
     <div className="flex flex-wrap gap-2">
       {links.map((l) => (
-        <Link key={l.to} to={l.to} className="btn btn-ghost !min-h-[36px] text-sm" activeOptions={{ exact: true }} activeProps={{ className: '!bg-tint !text-primary' }}>
+        <Link key={l.to} to={l.to} className="btn btn-ghost text-sm" activeOptions={{ exact: true }} activeProps={{ className: '!bg-tint !text-primary' }}>
           {l.text}
         </Link>
       ))}

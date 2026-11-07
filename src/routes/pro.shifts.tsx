@@ -226,7 +226,7 @@ function ShiftCard({ shift, currency, onChange }: { shift: ShiftRow; currency: s
                   ) : offered.has(c.worker_id) ? (
                     <Badge value="submitted">Offered</Badge>
                   ) : (
-                    <button className="btn btn-primary !min-h-[36px] text-xs" onClick={() => void offer(c.worker_id)}>
+                    <button className="btn btn-primary text-xs" onClick={() => void offer(c.worker_id)}>
                       Offer
                     </button>
                   )}
