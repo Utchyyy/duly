@@ -20,4 +20,4 @@ See `CLAUDE.md` for the build rules.
 
 ## Tests
 
-`pnpm test:db` applies every migration to a throwaway Postgres and runs `supabase/tests/*.test.sql`: the booking-to-payment workflow, escrow and disputes, recurring visits, and who can see or change what (RLS, anon, protected fields). It needs `psql` and a Postgres superuser via the usual `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`, and it drops and recreates a database called `duly_test`. CI runs the same script, plus lint, typecheck and build.
+`pnpm test:db` applies every migration to a throwaway Postgres and runs `supabase/tests/*.test.sql`: the booking-to-payment workflow, escrow and disputes, recurring visits, who can see or change what (RLS, anon, protected fields), WFX shifts and DBS, evidence storage, and per-segment money rules (invoice terms, hospitality, policy-driven releases and fee). It needs `psql` and a Postgres superuser via the usual `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`, and it drops and recreates a database called `duly_test`. CI runs the same script, plus lint, typecheck and build.
