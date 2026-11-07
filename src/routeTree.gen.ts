@@ -14,6 +14,24 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BusinessRouteImport } from './routes/business'
 import { Route as CrewRouteImport } from './routes/crew'
 import { Route as ProRouteImport } from './routes/pro'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminIssuesRouteImport } from './routes/admin.issues'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminPeopleRouteImport } from './routes/admin.people'
+import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
+import { Route as AdminVerificationRouteImport } from './routes/admin.verification'
+import { Route as BriefsBriefIdRouteImport } from './routes/briefs.$briefId'
+import { Route as CrewIndexRouteImport } from './routes/crew.index'
+import { Route as CrewJobIdRouteImport } from './routes/crew.$jobId'
+import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
+import { Route as ProIndexRouteImport } from './routes/pro.index'
+import { Route as ProJobsRouteImport } from './routes/pro.jobs'
+import { Route as ProPayoutsRouteImport } from './routes/pro.payouts'
+import { Route as ProProfileRouteImport } from './routes/pro.profile'
+import { Route as ProQuotesRouteImport } from './routes/pro.quotes'
+import { Route as ProTeamRouteImport } from './routes/pro.team'
+import { Route as ProVerificationRouteImport } from './routes/pro.verification'
+import { Route as SitesNewRouteImport } from './routes/sites.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,43 +58,254 @@ const ProRoute = ProRouteImport.update({
   path: '/pro',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminIssuesRoute = AdminIssuesRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPeopleRoute = AdminPeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
+  id: '/policies',
+  path: '/policies',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVerificationRoute = AdminVerificationRouteImport.update({
+  id: '/verification',
+  path: '/verification',
+  getParentRoute: () => AdminRoute,
+} as any)
+const BriefsBriefIdRoute = BriefsBriefIdRouteImport.update({
+  id: '/briefs/$briefId',
+  path: '/briefs/$briefId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrewIndexRoute = CrewIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CrewRoute,
+} as any)
+const CrewJobIdRoute = CrewJobIdRouteImport.update({
+  id: '/$jobId',
+  path: '/$jobId',
+  getParentRoute: () => CrewRoute,
+} as any)
+const JobsJobIdRoute = JobsJobIdRouteImport.update({
+  id: '/jobs/$jobId',
+  path: '/jobs/$jobId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProIndexRoute = ProIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProJobsRoute = ProJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProPayoutsRoute = ProPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProProfileRoute = ProProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProQuotesRoute = ProQuotesRouteImport.update({
+  id: '/quotes',
+  path: '/quotes',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProTeamRoute = ProTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProVerificationRoute = ProVerificationRouteImport.update({
+  id: '/verification',
+  path: '/verification',
+  getParentRoute: () => ProRoute,
+} as any)
+const SitesNewRoute = SitesNewRouteImport.update({
+  id: '/sites/new',
+  path: '/sites/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/business': typeof BusinessRoute
-  '/crew': typeof CrewRoute
-  '/pro': typeof ProRoute
+  '/crew': typeof CrewRouteWithChildren
+  '/pro': typeof ProRouteWithChildren
+  '/admin/issues': typeof AdminIssuesRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/people': typeof AdminPeopleRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/verification': typeof AdminVerificationRoute
+  '/briefs/$briefId': typeof BriefsBriefIdRoute
+  '/crew/$jobId': typeof CrewJobIdRoute
+  '/jobs/$jobId': typeof JobsJobIdRoute
+  '/pro/jobs': typeof ProJobsRoute
+  '/pro/payouts': typeof ProPayoutsRoute
+  '/pro/profile': typeof ProProfileRoute
+  '/pro/quotes': typeof ProQuotesRoute
+  '/pro/team': typeof ProTeamRoute
+  '/pro/verification': typeof ProVerificationRoute
+  '/sites/new': typeof SitesNewRoute
+  '/admin/': typeof AdminIndexRoute
+  '/crew/': typeof CrewIndexRoute
+  '/pro/': typeof ProIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/business': typeof BusinessRoute
-  '/crew': typeof CrewRoute
-  '/pro': typeof ProRoute
+  '/admin/issues': typeof AdminIssuesRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/people': typeof AdminPeopleRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/verification': typeof AdminVerificationRoute
+  '/briefs/$briefId': typeof BriefsBriefIdRoute
+  '/crew/$jobId': typeof CrewJobIdRoute
+  '/jobs/$jobId': typeof JobsJobIdRoute
+  '/pro/jobs': typeof ProJobsRoute
+  '/pro/payouts': typeof ProPayoutsRoute
+  '/pro/profile': typeof ProProfileRoute
+  '/pro/quotes': typeof ProQuotesRoute
+  '/pro/team': typeof ProTeamRoute
+  '/pro/verification': typeof ProVerificationRoute
+  '/sites/new': typeof SitesNewRoute
+  '/admin': typeof AdminIndexRoute
+  '/crew': typeof CrewIndexRoute
+  '/pro': typeof ProIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/business': typeof BusinessRoute
-  '/crew': typeof CrewRoute
-  '/pro': typeof ProRoute
+  '/crew': typeof CrewRouteWithChildren
+  '/pro': typeof ProRouteWithChildren
+  '/admin/issues': typeof AdminIssuesRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/people': typeof AdminPeopleRoute
+  '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/verification': typeof AdminVerificationRoute
+  '/briefs/$briefId': typeof BriefsBriefIdRoute
+  '/crew/$jobId': typeof CrewJobIdRoute
+  '/jobs/$jobId': typeof JobsJobIdRoute
+  '/pro/jobs': typeof ProJobsRoute
+  '/pro/payouts': typeof ProPayoutsRoute
+  '/pro/profile': typeof ProProfileRoute
+  '/pro/quotes': typeof ProQuotesRoute
+  '/pro/team': typeof ProTeamRoute
+  '/pro/verification': typeof ProVerificationRoute
+  '/sites/new': typeof SitesNewRoute
+  '/admin/': typeof AdminIndexRoute
+  '/crew/': typeof CrewIndexRoute
+  '/pro/': typeof ProIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/business' | '/crew' | '/pro'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/business'
+    | '/crew'
+    | '/pro'
+    | '/admin/issues'
+    | '/admin/payments'
+    | '/admin/people'
+    | '/admin/policies'
+    | '/admin/verification'
+    | '/briefs/$briefId'
+    | '/crew/$jobId'
+    | '/jobs/$jobId'
+    | '/pro/jobs'
+    | '/pro/payouts'
+    | '/pro/profile'
+    | '/pro/quotes'
+    | '/pro/team'
+    | '/pro/verification'
+    | '/sites/new'
+    | '/admin/'
+    | '/crew/'
+    | '/pro/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/business' | '/crew' | '/pro'
-  id: '__root__' | '/' | '/admin' | '/business' | '/crew' | '/pro'
+  to:
+    | '/'
+    | '/business'
+    | '/admin/issues'
+    | '/admin/payments'
+    | '/admin/people'
+    | '/admin/policies'
+    | '/admin/verification'
+    | '/briefs/$briefId'
+    | '/crew/$jobId'
+    | '/jobs/$jobId'
+    | '/pro/jobs'
+    | '/pro/payouts'
+    | '/pro/profile'
+    | '/pro/quotes'
+    | '/pro/team'
+    | '/pro/verification'
+    | '/sites/new'
+    | '/admin'
+    | '/crew'
+    | '/pro'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/business'
+    | '/crew'
+    | '/pro'
+    | '/admin/issues'
+    | '/admin/payments'
+    | '/admin/people'
+    | '/admin/policies'
+    | '/admin/verification'
+    | '/briefs/$briefId'
+    | '/crew/$jobId'
+    | '/jobs/$jobId'
+    | '/pro/jobs'
+    | '/pro/payouts'
+    | '/pro/profile'
+    | '/pro/quotes'
+    | '/pro/team'
+    | '/pro/verification'
+    | '/sites/new'
+    | '/admin/'
+    | '/crew/'
+    | '/pro/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   BusinessRoute: typeof BusinessRoute
-  CrewRoute: typeof CrewRoute
-  ProRoute: typeof ProRoute
+  CrewRoute: typeof CrewRouteWithChildren
+  ProRoute: typeof ProRouteWithChildren
+  BriefsBriefIdRoute: typeof BriefsBriefIdRoute
+  JobsJobIdRoute: typeof JobsJobIdRoute
+  SitesNewRoute: typeof SitesNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,15 +345,198 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/issues': {
+      id: '/admin/issues'
+      path: '/issues'
+      fullPath: '/admin/issues'
+      preLoaderRoute: typeof AdminIssuesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/people': {
+      id: '/admin/people'
+      path: '/people'
+      fullPath: '/admin/people'
+      preLoaderRoute: typeof AdminPeopleRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/policies': {
+      id: '/admin/policies'
+      path: '/policies'
+      fullPath: '/admin/policies'
+      preLoaderRoute: typeof AdminPoliciesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/verification': {
+      id: '/admin/verification'
+      path: '/verification'
+      fullPath: '/admin/verification'
+      preLoaderRoute: typeof AdminVerificationRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/briefs/$briefId': {
+      id: '/briefs/$briefId'
+      path: '/briefs/$briefId'
+      fullPath: '/briefs/$briefId'
+      preLoaderRoute: typeof BriefsBriefIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crew/': {
+      id: '/crew/'
+      path: '/'
+      fullPath: '/crew/'
+      preLoaderRoute: typeof CrewIndexRouteImport
+      parentRoute: typeof CrewRoute
+    }
+    '/crew/$jobId': {
+      id: '/crew/$jobId'
+      path: '/$jobId'
+      fullPath: '/crew/$jobId'
+      preLoaderRoute: typeof CrewJobIdRouteImport
+      parentRoute: typeof CrewRoute
+    }
+    '/jobs/$jobId': {
+      id: '/jobs/$jobId'
+      path: '/jobs/$jobId'
+      fullPath: '/jobs/$jobId'
+      preLoaderRoute: typeof JobsJobIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pro/': {
+      id: '/pro/'
+      path: '/'
+      fullPath: '/pro/'
+      preLoaderRoute: typeof ProIndexRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/jobs': {
+      id: '/pro/jobs'
+      path: '/jobs'
+      fullPath: '/pro/jobs'
+      preLoaderRoute: typeof ProJobsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/payouts': {
+      id: '/pro/payouts'
+      path: '/payouts'
+      fullPath: '/pro/payouts'
+      preLoaderRoute: typeof ProPayoutsRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/profile': {
+      id: '/pro/profile'
+      path: '/profile'
+      fullPath: '/pro/profile'
+      preLoaderRoute: typeof ProProfileRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/quotes': {
+      id: '/pro/quotes'
+      path: '/quotes'
+      fullPath: '/pro/quotes'
+      preLoaderRoute: typeof ProQuotesRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/team': {
+      id: '/pro/team'
+      path: '/team'
+      fullPath: '/pro/team'
+      preLoaderRoute: typeof ProTeamRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/verification': {
+      id: '/pro/verification'
+      path: '/verification'
+      fullPath: '/pro/verification'
+      preLoaderRoute: typeof ProVerificationRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/sites/new': {
+      id: '/sites/new'
+      path: '/sites/new'
+      fullPath: '/sites/new'
+      preLoaderRoute: typeof SitesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminIssuesRoute: typeof AdminIssuesRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminPeopleRoute: typeof AdminPeopleRoute
+  AdminPoliciesRoute: typeof AdminPoliciesRoute
+  AdminVerificationRoute: typeof AdminVerificationRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIssuesRoute: AdminIssuesRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminPeopleRoute: AdminPeopleRoute,
+  AdminPoliciesRoute: AdminPoliciesRoute,
+  AdminVerificationRoute: AdminVerificationRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface CrewRouteChildren {
+  CrewJobIdRoute: typeof CrewJobIdRoute
+  CrewIndexRoute: typeof CrewIndexRoute
+}
+
+const CrewRouteChildren: CrewRouteChildren = {
+  CrewJobIdRoute: CrewJobIdRoute,
+  CrewIndexRoute: CrewIndexRoute,
+}
+
+const CrewRouteWithChildren = CrewRoute._addFileChildren(CrewRouteChildren)
+
+interface ProRouteChildren {
+  ProJobsRoute: typeof ProJobsRoute
+  ProPayoutsRoute: typeof ProPayoutsRoute
+  ProProfileRoute: typeof ProProfileRoute
+  ProQuotesRoute: typeof ProQuotesRoute
+  ProTeamRoute: typeof ProTeamRoute
+  ProVerificationRoute: typeof ProVerificationRoute
+  ProIndexRoute: typeof ProIndexRoute
+}
+
+const ProRouteChildren: ProRouteChildren = {
+  ProJobsRoute: ProJobsRoute,
+  ProPayoutsRoute: ProPayoutsRoute,
+  ProProfileRoute: ProProfileRoute,
+  ProQuotesRoute: ProQuotesRoute,
+  ProTeamRoute: ProTeamRoute,
+  ProVerificationRoute: ProVerificationRoute,
+  ProIndexRoute: ProIndexRoute,
+}
+
+const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   BusinessRoute: BusinessRoute,
-  CrewRoute: CrewRoute,
-  ProRoute: ProRoute,
+  CrewRoute: CrewRouteWithChildren,
+  ProRoute: ProRouteWithChildren,
+  BriefsBriefIdRoute: BriefsBriefIdRoute,
+  JobsJobIdRoute: JobsJobIdRoute,
+  SitesNewRoute: SitesNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

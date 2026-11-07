@@ -1,11 +1,35 @@
+import { Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useAuth } from '#/lib/auth'
+import { hasRole, useAuth } from '#/lib/auth'
+import { label, must, useLoad, when } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
 import { Empty } from './Shells'
+import { Badge, ErrorNote, Loading, Section } from './ui'
 import { VendorDirectory } from './VendorDirectory'
 
 type Segment = { code: string; name: string }
+
+/** Links to the other areas this person can use. */
+export function AreaLinks() {
+  const { memberships, hasWorkerRecord } = useAuth()
+  const links: { to: string; text: string }[] = []
+  if (hasRole(memberships, ['vendor_admin', 'dispatcher'])) links.push({ to: '/pro', text: 'Duly Pro' })
+  if (hasWorkerRecord || hasRole(memberships, ['operative'])) links.push({ to: '/crew', text: 'Duly Crew' })
+  if (hasRole(memberships, ['platform_admin'])) links.push({ to: '/admin', text: 'Duly Admin' })
+  if (memberships.some((m) => m.org?.kind === 'buyer' && m.org.segment !== 'homeowner')) links.push({ to: '/business', text: 'Business' })
+  if (memberships.some((m) => m.org?.kind === 'buyer' && m.org.segment === 'homeowner')) links.push({ to: '/', text: 'Home' })
+  if (links.length < 2) return null
+  return (
+    <div className="flex flex-wrap gap-2">
+      {links.map((l) => (
+        <Link key={l.to} to={l.to} className="btn btn-ghost !min-h-[36px] text-sm" activeOptions={{ exact: true }} activeProps={{ className: '!bg-tint !text-primary' }}>
+          {l.text}
+        </Link>
+      ))}
+    </div>
+  )
+}
 
 /** Home for buyers. `mode` decides which segments an account can be started in. */
 export function BuyerHome({ mode }: { mode: 'home' | 'business' }) {
@@ -17,24 +41,102 @@ export function BuyerHome({ mode }: { mode: 'home' | 'business' }) {
   )
   const org = buyerOrgs[0]?.org ?? null
 
-  if (!org) return <StartAccount mode={mode} onDone={refresh} />
+  if (!org) {
+    return (
+      <div className="space-y-6">
+        <AreaLinks />
+        <StartAccount mode={mode} onDone={refresh} />
+      </div>
+    )
+  }
+  return <BuyerDashboard orgId={org.id} orgName={org.name} mode={mode} />
+}
+
+function BuyerDashboard({ orgId, orgName, mode }: { orgId: string; orgName: string; mode: 'home' | 'business' }) {
+  const { data, error } = useLoad(async () => {
+    const db = supabase()
+    const [sites, briefs, jobs] = await Promise.all([
+      db.from('sites').select('id, name, town, postcode').eq('org_id', orgId).order('created_at'),
+      db.from('briefs').select('id, title, status, current_version, site_id, created_at').eq('buyer_org_id', orgId).order('created_at', { ascending: false }),
+      db
+        .from('jobs')
+        .select('id, status, scheduled_start, site_id, vendor:organisations!jobs_vendor_org_id_fkey(name)')
+        .eq('buyer_org_id', orgId)
+        .order('scheduled_start', { ascending: false })
+        .limit(20),
+    ])
+    return { sites: must(sites), briefs: must(briefs), jobs: must(jobs) }
+  }, [orgId])
+
+  const siteName = (id: string) => data?.sites.find((s) => s.id === id)?.name ?? ''
+  const place = mode === 'home' ? 'home' : 'site'
 
   return (
     <div className="space-y-8">
-      <section>
-        <p className="text-sm font-medium text-primary">{org.name}</p>
-        <h1 className="mt-1 text-3xl">{mode === 'home' ? 'Your home' : 'Your sites'}</h1>
+      <AreaLinks />
+      <section className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-primary">{orgName}</p>
+          <h1 className="mt-1 text-3xl">{mode === 'home' ? 'Your home' : 'Your sites'}</h1>
+        </div>
+        <Link to="/sites/new" search={{ org: orgId }} className="btn btn-primary">
+          {data?.sites.length ? `New brief` : `Add your ${place}`}
+        </Link>
       </section>
-      <section className="space-y-3">
-        <h2 className="text-xl">Briefs</h2>
-        <Empty title="No briefs yet">
-          Add a {mode === 'home' ? 'home' : 'site'} and describe the clean, then lock the brief to get ranked quotes.
-        </Empty>
-      </section>
-      <section className="space-y-3">
-        <h2 className="text-xl">Vendors on Duly</h2>
-        <VendorDirectory />
-      </section>
+      <ErrorNote message={error} />
+      {!data ? (
+        <Loading />
+      ) : (
+        <>
+          <Section title="Cleans booked">
+            {data.jobs.length === 0 ? (
+              <Empty title="Nothing booked yet">Accept a quote on a brief and the clean appears here.</Empty>
+            ) : (
+              <ul className="space-y-2">
+                {data.jobs.map((j) => (
+                  <li key={j.id}>
+                    <Link to="/jobs/$jobId" params={{ jobId: j.id }} className="card flex items-center justify-between gap-3 p-4">
+                      <div>
+                        <p className="font-semibold">{when(j.scheduled_start)}</p>
+                        <p className="text-sm text-ink-2">
+                          {j.vendor?.name} · {siteName(j.site_id)}
+                        </p>
+                      </div>
+                      <Badge value={j.status} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title="Briefs">
+            {data.briefs.length === 0 ? (
+              <Empty title="No briefs yet">
+                Add your {place}, pick a starting schedule and adjust it. Lock it when it's right to get ranked vendors and quotes.
+              </Empty>
+            ) : (
+              <ul className="space-y-2">
+                {data.briefs.map((b) => (
+                  <li key={b.id}>
+                    <Link to="/briefs/$briefId" params={{ briefId: b.id }} className="card flex items-center justify-between gap-3 p-4">
+                      <div>
+                        <p className="font-semibold">{b.title}</p>
+                        <p className="text-sm text-ink-2">
+                          {siteName(b.site_id)} · version {b.current_version}
+                        </p>
+                      </div>
+                      <Badge value={b.status}>{b.status === 'draft' ? 'Draft' : label(b.status)}</Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title="Vendors on Duly">
+            <VendorDirectory />
+          </Section>
+        </>
+      )}
     </div>
   )
 }
@@ -93,7 +195,7 @@ function StartAccount({ mode, onDone }: { mode: 'home' | 'business'; onDone: () 
       <button className="btn btn-primary w-full" disabled={busy}>
         {busy ? 'Setting up…' : 'Continue'}
       </button>
-      {error && <p className="rounded-lg bg-alert-bg p-3 text-sm text-alert">{error}</p>}
+      <ErrorNote message={error} />
     </form>
   )
 }

@@ -16,7 +16,14 @@ Duly is a verified cleaning marketplace. Surfaces: buyer app `/`, Duly for Busin
 ## Schema layout
 - App tables live in `public` (exposed through the API, guarded by RLS).
 - Access helpers (`is_member`, `has_org_role`, `can_see_job`, …) are SECURITY DEFINER functions in the `private` schema, which the API does not expose. Policies call them.
-- The only callable RPCs are in `public`: `create_buyer_org`, `rank_vendors`, `price_quote`, `rank_candidates`, `demand_by_town`, `corridor_suggestions`. Each checks access itself.
+- The only callable RPCs are in `public`, and each checks access itself:
+  - Matching and pricing: `rank_vendors`, `price_quote`, `rank_candidates`, `demand_by_town`, `corridor_suggestions`
+  - Workflow: `create_buyer_org`, `submit_quote`, `decline_quote`, `accept_quote`, `check_in`, `complete_job`, `approve_job`, `mark_payment_paid`
+  - People: `add_member`, `org_member_emails`
+- Triggers guard what direct writes can't be trusted with: job status/value (`protect_job_fields`), verdicts (`protect_area_result_fields`), verification tier (`protect_org_fields`), evidence geofence, issue SLA and dispute holds.
+
+## Workflow
+Brief (draft → locked version) → client invites ranked vendors → vendor submits (price computed by `price_quote`) → client accepts with a start time (creates contract, job, escrow line for escrow segments) → vendor assigns crew → crew checks in (geofence checked in SQL), ticks standards, uploads after-photos to `evidence/<job_id>/<area_id>/…` → `complete_job` → client marks each standard met/not met → `approve_job` schedules releases from `policies`, or a reported issue holds the job as `disputed` → Duly records bank transfers with `mark_payment_paid` (Stripe to replace) → `recompute_vendor_score` from real jobs only.
 
 ## Auth
 Email one-time code (Supabase OTP). Buyers and operatives can sign up; vendor staff and admins are invite-only (`shouldCreateUser: false`). Roles come from `memberships`.

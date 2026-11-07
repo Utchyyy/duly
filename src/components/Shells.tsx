@@ -41,31 +41,39 @@ export function AppShell({ suffix, children, wide }: { suffix?: string; children
   )
 }
 
-export type NavItem = { label: string; active?: boolean }
+export type NavItem = { label: string; to: string; exact?: boolean }
 
 /** Duly Pro and Duly Admin: desktop console, 1440px design width, dark sidebar. */
 export function ConsoleShell({ suffix, nav, children }: { suffix: string; nav: NavItem[]; children: ReactNode }) {
   return (
     <div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
       <aside className="bg-pro p-5 text-pro-ink md:min-h-screen">
-        <Wordmark suffix={suffix} light />
-        <nav className="mt-8 flex gap-1 overflow-x-auto md:flex-col">
+        <div className="flex items-center justify-between">
+          <Link to="/" className="inline-flex min-h-[44px] items-center">
+            <Wordmark suffix={suffix} light />
+          </Link>
+          <div className="md:hidden">
+            <AccountButton light />
+          </div>
+        </div>
+        <nav className="mt-6 flex gap-1 overflow-x-auto md:mt-8 md:flex-col">
           {nav.map((item) => (
-            <span
-              key={item.label}
-              className={`flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm ${
-                item.active ? 'bg-white/10 font-semibold text-white' : 'text-pro-ink/70'
-              }`}
+            <Link
+              key={item.to}
+              to={item.to}
+              activeOptions={{ exact: item.exact ?? false }}
+              className="flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm text-pro-ink/70 hover:text-white"
+              activeProps={{ className: '!bg-white/10 font-semibold !text-white' }}
             >
               {item.label}
-            </span>
+            </Link>
           ))}
         </nav>
         <div className="mt-8 hidden md:block">
           <AccountButton light />
         </div>
       </aside>
-      <main className="p-6 md:p-10">{children}</main>
+      <main className="min-w-0 p-5 md:p-10">{children}</main>
     </div>
   )
 }

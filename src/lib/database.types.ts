@@ -757,9 +757,12 @@ export type Database = {
           contract_id: string | null
           created_at: string
           currency: string
+          due_at: string | null
           id: string
           job_id: string | null
           kind: Database["public"]["Enums"]["payment_kind"]
+          note: string | null
+          paid_at: string | null
           provider: string
           provider_ref: string | null
           status: string
@@ -769,9 +772,12 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           currency?: string
+          due_at?: string | null
           id?: string
           job_id?: string | null
           kind: Database["public"]["Enums"]["payment_kind"]
+          note?: string | null
+          paid_at?: string | null
           provider: string
           provider_ref?: string | null
           status?: string
@@ -781,9 +787,12 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           currency?: string
+          due_at?: string | null
           id?: string
           job_id?: string | null
           kind?: Database["public"]["Enums"]["payment_kind"]
+          note?: string | null
+          paid_at?: string | null
           provider?: string
           provider_ref?: string | null
           status?: string
@@ -1483,6 +1492,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_quote: {
+        Args: { p_quote: string; p_start: string }
+        Returns: string
+      }
+      add_member: {
+        Args: {
+          p_email: string
+          p_org: string
+          p_role: Database["public"]["Enums"]["member_role"]
+        }
+        Returns: string
+      }
+      approve_job: { Args: { p_job: string }; Returns: undefined }
+      check_in: {
+        Args: { p_job: string; p_lat: number; p_lng: number }
+        Returns: Json
+      }
       commute_band: {
         Args: { km: number }
         Returns: {
@@ -1490,6 +1516,10 @@ export type Database = {
           note: string
           paid_minutes: number
         }[]
+      }
+      complete_job: {
+        Args: { p_job: string; p_lat?: number; p_lng?: number }
+        Returns: undefined
       }
       corridor_suggestions: {
         Args: never
@@ -1507,6 +1537,7 @@ export type Database = {
         Args: { p_name: string; p_segment: string }
         Returns: string
       }
+      decline_quote: { Args: { p_quote: string }; Returns: undefined }
       demand_by_town: {
         Args: never
         Returns: {
@@ -1520,6 +1551,19 @@ export type Database = {
       haversine_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
+      }
+      mark_payment_paid: {
+        Args: { p_payment: string; p_reference: string }
+        Returns: undefined
+      }
+      org_member_emails: {
+        Args: { p_org: string }
+        Returns: {
+          email: string
+          full_name: string
+          role: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }[]
       }
       price_quote: {
         Args: {
@@ -1556,6 +1600,10 @@ export type Database = {
           rank: number
           verification_tier: number
         }[]
+      }
+      submit_quote: {
+        Args: { p_quote: string; p_valid_days?: number }
+        Returns: Json
       }
     }
     Enums: {
