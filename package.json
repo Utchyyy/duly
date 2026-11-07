@@ -11,6 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:db": "supabase/tests/run.sh",
     "format": "prettier --write . && eslint --fix",
     "check": "prettier --check ."
   },
