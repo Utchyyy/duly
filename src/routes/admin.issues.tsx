@@ -15,7 +15,7 @@ function AdminIssues() {
   const { data, error, reload } = useLoad(async () => {
     let q = supabase()
       .from('issues')
-      .select('id, kind, description, status, resolution, sla_due_at, created_at, job_id, job:jobs(scheduled_start, vendor:organisations!jobs_vendor_org_id_fkey(name), site:sites(name, town))')
+      .select('id, kind, description, status, resolution, sla_due_at, created_at, job_id, plan_label, job:jobs(scheduled_start, vendor:organisations!jobs_vendor_org_id_fkey(name), site:sites(name, town))')
       .order('created_at', { ascending: false })
     if (!showResolved) q = q.neq('status', 'resolved')
     return must(await q)
@@ -51,6 +51,7 @@ type IssueRow = {
   sla_due_at: string | null
   created_at: string
   job_id: string | null
+  plan_label: string | null
   job: { scheduled_start: string; vendor: { name: string } | null; site: { name: string; town: string | null } | null } | null
 }
 
@@ -84,6 +85,7 @@ function IssueCard({ issue, onChange }: { issue: IssueRow; onChange: () => void 
           <Badge value={issue.status} />
         </div>
       </div>
+      {issue.plan_label && <p className="text-sm font-medium">About: {issue.plan_label}</p>}
       <p className="text-sm">{issue.description}</p>
       {issue.job_id && (
         <Link to="/jobs/$jobId" params={{ jobId: issue.job_id }} className="link-action text-sm font-semibold text-primary">

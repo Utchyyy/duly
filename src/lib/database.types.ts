@@ -477,6 +477,8 @@ export type Database = {
       }
       issues: {
         Row: {
+          plan_item_id: string | null
+          plan_label: string | null
           created_at: string
           description: string
           id: string
@@ -490,6 +492,8 @@ export type Database = {
           status: Database["public"]["Enums"]["issue_status"]
         }
         Insert: {
+          plan_item_id?: string | null
+          plan_label?: string | null
           created_at?: string
           description: string
           id?: string
@@ -503,6 +507,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["issue_status"]
         }
         Update: {
+          plan_item_id?: string | null
+          plan_label?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -1582,6 +1588,106 @@ export type Database = {
             columns: ["worker_id"]
             isOneToOne: true
             referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_plan_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          legend: Json
+          name: string
+          plan: Json
+          segment: string | null
+          vendor_org_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          legend: Json
+          name: string
+          plan: Json
+          segment?: string | null
+          vendor_org_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          legend?: Json
+          name?: string
+          plan?: Json
+          segment?: string | null
+          vendor_org_id?: string | null
+        }
+        Relationships: []
+      }
+      work_schedules: {
+        Row: {
+          brief_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          legend: Json
+          locked_at: string | null
+          plan: Json
+          quote_id: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          vendor_org_id: string
+        }
+        Insert: {
+          brief_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legend: Json
+          locked_at?: string | null
+          plan: Json
+          quote_id: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          vendor_org_id?: string
+        }
+        Update: {
+          brief_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legend?: Json
+          locked_at?: string | null
+          plan?: Json
+          quote_id?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          vendor_org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_schedules_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_schedules_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: true
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_schedules_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
         ]

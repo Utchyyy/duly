@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Empty } from '#/components/Shells'
 import { Badge, ErrorNote, Loading } from '#/components/ui'
@@ -29,7 +29,8 @@ function ProQuotes() {
         ? db.from('brief_versions').select('brief_id, version, schedule').in('brief_id', briefIds)
         : Promise.resolve({ data: [], error: null }),
     ])
-    return { quotes, briefs: must(briefs), versions: must(versions) }
+    const schedules = quotes.length ? must(await db.from('work_schedules').select('quote_id, status').in('quote_id', quotes.map((q) => q.id))) : []
+    return { quotes, briefs: must(briefs), versions: must(versions), schedules }
   }, [vendor.id])
   const [busy, setBusy] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -92,6 +93,7 @@ function ProQuotes() {
                     </div>
                   ))}
                 </details>
+                <WorkScheduleLink quoteId={q.id} status={data.schedules.find((x) => x.quote_id === q.id)?.status} quoteStatus={q.status} />
                 {(q.status === 'invited' || q.status === 'submitted') && (
                   <div className="flex flex-wrap gap-2">
                     <button className="btn btn-primary" disabled={busy === q.id} onClick={() => void act(q.id, 'submit_quote')}>
@@ -107,6 +109,18 @@ function ProQuotes() {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function WorkScheduleLink({ quoteId, status, quoteStatus }: { quoteId: string; status: string | undefined; quoteStatus: string }) {
+  if (!status && quoteStatus !== 'invited' && quoteStatus !== 'submitted') return null
+  const text = status === 'locked' ? 'Work schedule (locked)' : status === 'submitted' ? 'Work schedule (sent)' : status === 'draft' ? 'Work schedule (draft)' : 'Build a work schedule'
+  return (
+    <div>
+      <Link to="/pro/schedules/$quoteId" params={{ quoteId }} className="link-action text-sm font-semibold text-primary">
+        {text}
+      </Link>
     </div>
   )
 }

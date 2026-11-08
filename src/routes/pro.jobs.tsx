@@ -15,7 +15,7 @@ function ProJobs() {
   const { data, error, reload } = useLoad(async () => {
     const db = supabase()
     const since = new Date(Date.now() - 14 * 86400000).toISOString()
-    const [jobs, members, contracts] = await Promise.all([
+    const [jobs, members, contracts, problems] = await Promise.all([
       db
         .from('jobs')
         .select('id, status, scheduled_start, value, currency, site:sites(name, town, postcode, access_notes), job_assignments(user_id, role)')
@@ -29,8 +29,15 @@ function ProJobs() {
         .eq('vendor_org_id', vendor.id)
         .eq('status', 'active')
         .order('created_at', { ascending: false }),
+      // Problems clients have reported on this vendor's cleans that are not yet resolved (never safeguarding reports: only Duly sees those).
+      db
+        .from('issues')
+        .select('id, job_id, kind, description, status, resolution, plan_label, created_at, job:jobs!inner(vendor_org_id, scheduled_start, site:sites(name, town))')
+        .eq('job.vendor_org_id', vendor.id)
+        .neq('status', 'resolved')
+        .order('created_at', { ascending: false }),
     ])
-    return { jobs: must(jobs), members: must(members) as Member[], contracts: must(contracts) }
+    return { jobs: must(jobs), members: must(members) as Member[], contracts: must(contracts), problems: must(problems) }
   }, [vendor.id])
 
   if (error) return <ErrorNote message={error} />
@@ -42,6 +49,28 @@ function ProJobs() {
   return (
     <div className="space-y-8">
       <h1 className="text-3xl">Jobs and crew</h1>
+      {data.problems.length > 0 && (
+        <Section title="Problems to put right">
+          <div className="space-y-2">
+            {data.problems.map((p) => (
+              <div key={p.id} className="card space-y-1 border-alert p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold">
+                    {label(p.kind)} · clean {when(p.job?.scheduled_start)} · {p.job?.site?.name}
+                  </p>
+                  <Badge value={p.status} />
+                </div>
+                {p.plan_label && <p className="font-medium">About: {p.plan_label}</p>}
+                <p>{p.description}</p>
+                {p.resolution && <p className="text-ink-2">Outcome so far: {p.resolution}</p>}
+                <Link to="/crew/$jobId" params={{ jobId: p.job_id ?? '' }} className="link-action text-sm font-semibold text-primary">
+                  Job sheet
+                </Link>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
       <Section title="Coming up and in progress">
         {upcoming.length === 0 ? (
           <Empty title="No jobs booked">When a client accepts your quote, the job appears here for you to assign a cleaner.</Empty>

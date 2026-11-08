@@ -34,9 +34,9 @@ export function Field({ label: text, htmlFor, children, hint }: { label: string;
   )
 }
 
-export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+export function Section({ id, title, action, children }: { id?: string; title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <section className="space-y-3">
+    <section id={id} className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl">{title}</h2>
         {action}
