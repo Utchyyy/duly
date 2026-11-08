@@ -22,7 +22,7 @@ function memoryStore(listAll = false) {
 /** A pretend Supabase: files and evidence rows live in maps; failures can be scripted per call. */
 function fakeSink(script: { upload?: (n: number) => void; exists?: (n: number) => void; insert?: (n: number) => void } = {}) {
   const files = new Map<string, Blob>()
-  const evidence: { storage_path: string; taken_at: string; lat: number | null; lng: number | null; area_id: string }[] = []
+  const evidence: { storage_path: string; taken_at: string; lat: number | null; lng: number | null; area_id: string; plan_item_id?: string | null }[] = []
   const calls = { upload: 0, exists: 0, insert: 0, log: [] as string[] }
   const sink: PhotoSink = {
     async upload(path, blob) { calls.upload += 1; calls.log.push(`upload ${path}`); script.upload?.(calls.upload); files.set(path, blob) },
@@ -241,4 +241,12 @@ test('what people read when something fails is plain, and a server reason is pas
   assert.equal(friendlyError(new Error('This job is completed and cannot be checked into')), 'This job is completed and cannot be checked into')
   assert.equal(friendlyError({ message: 'You are not on this job' }), 'You are not on this job')
   assert.match(friendlyError(undefined), /Something went wrong/)
+})
+
+test('a photo tagged to a cleaning area carries the tag; an untagged one carries none', async () => {
+  const { sink, evidence } = fakeSink()
+  await deliver(sink, { ...photo(1), planItemId: 'r3' } as OutboxEntry)
+  await deliver(sink, photo(2) as unknown as OutboxEntry)
+  assert.equal(evidence[0].plan_item_id, 'r3')
+  assert.equal('plan_item_id' in evidence[1], false)
 })

@@ -10,8 +10,8 @@ import { must, position, useLoad, when } from '#/lib/format'
 import { parseSchedule } from '#/lib/schedule'
 import type { Area } from '#/lib/schedule'
 import { supabase } from '#/lib/supabase'
-import { DAY_FULL, METHOD_LABEL, dayOf, parsePlan, workForDay } from '#/lib/workplan'
-import type { Plan } from '#/lib/workplan'
+import { DAY_FULL, METHOD_LABEL, parsePlan, workForDay } from '#/lib/workplan'
+import type { Day } from '#/lib/workplan'
 
 export const Route = createFileRoute('/crew/$jobId')({ component: JobSheet })
 
@@ -26,12 +26,15 @@ function JobSheet() {
         .eq('id', jobId)
         .single(),
     )
-    const [version, evidence, results, events, workSchedule] = await Promise.all([
+    const [version, evidence, results, events, workSchedule, planDay, planResults] = await Promise.all([
       db.from('brief_versions').select('schedule, notes').eq('brief_id', job.brief_id).eq('version', job.brief_version).single(),
       db.from('evidence').select('id, area_id, kind, storage_path, within_geofence, created_at').eq('job_id', jobId).order('created_at'),
       db.from('area_results').select('area_id, standard_id, done_by_operative, verdict').eq('job_id', jobId),
       db.from('job_events').select('kind, at, within_geofence, data').eq('job_id', jobId).eq('kind', 'check_in').order('at'),
       job.quote_id ? db.from('work_schedules').select('plan, legend').eq('quote_id', job.quote_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      // The visit's weekday when the work schedule decides the check; null means the brief's standards apply.
+      db.rpc('job_plan_day', { p_job: jobId }),
+      db.from('plan_results').select('plan_item_id, done').eq('job_id', jobId),
     ])
     return {
       job,
@@ -42,6 +45,8 @@ function JobSheet() {
       checkIn: must(events)[0] ?? null,
       // Not an error if there is none: older jobs have no work schedule.
       plan: workSchedule.error || !workSchedule.data ? null : parsePlan(workSchedule.data.plan),
+      planDay: planDay.error ? null : ((planDay.data as string | null) as Day | null),
+      planResults: planResults.error ? [] : (planResults.data ?? []),
     }
   }, [jobId])
   const urls = useSignedUrls(data?.evidence)
@@ -110,10 +115,16 @@ function JobSheet() {
   }
 
   const ticked = (area: string, std: string) => data.results.some((r) => r.area_id === area && r.standard_id === std && r.done_by_operative)
-  const areas = data.schedule.flatMap((s) => s.areas.map((a) => ({ section: s.name, area: a })))
-  const doneAreas = areas.filter(
-    ({ area }) => area.standards.every((st) => ticked(area.id, st.id)) && data.evidence.some((e) => e.area_id === area.id && e.kind === 'photo_after'),
-  ).length
+  // With a work schedule that plans something for this weekday, the planned cleaning areas are the checklist.
+  const groups = data.plan && data.planDay ? workForDay(data.plan, data.planDay) : null
+  const rowDone = (id: string) => data.planResults.some((r) => r.plan_item_id === id && r.done)
+  const hasAfter = (areaId: string) => data.evidence.some((e) => e.area_id === areaId && e.kind === 'photo_after')
+  const areas = groups
+    ? groups.map((g) => ({ section: g.section, area: { id: g.sub.id, name: g.sub.name, minutes: 0, standards: [] as { id: string; text: string }[] } }))
+    : data.schedule.flatMap((s) => s.areas.map((a) => ({ section: s.name, area: a })))
+  const doneAreas = groups
+    ? groups.filter((g) => g.rows.every((r) => rowDone(r.row.id)) && hasAfter(g.sub.id)).length
+    : areas.filter(({ area }) => area.standards.every((st) => ticked(area.id, st.id)) && hasAfter(area.id)).length
 
   return (
     <div className="space-y-6 pb-24">
@@ -158,9 +169,36 @@ function JobSheet() {
         </button>
       )}
 
-      {data.plan && <TodaysWork plan={data.plan} start={job.scheduled_start} />}
+      {data.plan && !groups && (
+        <p className="card p-3 text-sm text-ink-2">The work schedule has no cleaning areas planned for this day, so work from the checklist below.</p>
+      )}
 
-      {(working || !beforeStart) && (
+      {(working || !beforeStart) && groups && data.planDay && (
+        <>
+          {working && (
+            <p className="text-sm text-ink-2">
+              {DAY_FULL[data.planDay]}'s work: tick each cleaning area as you finish it, and take an after photo for every part. {doneAreas} of {groups.length} parts done.
+            </p>
+          )}
+          {groups.map((g) => (
+            <GroupCard
+              key={g.sub.id}
+              jobId={jobId}
+              section={g.section}
+              groupId={g.sub.id}
+              name={g.sub.name}
+              rows={g.rows}
+              editable={working}
+              done={rowDone}
+              evidence={data.evidence.filter((e) => e.area_id === g.sub.id)}
+              urls={urls}
+              onChange={reload}
+            />
+          ))}
+        </>
+      )}
+
+      {(working || !beforeStart) && !groups && (
         <>
           {working && (
             <p className="text-sm text-ink-2">
@@ -187,12 +225,68 @@ function JobSheet() {
         <div className="fixed inset-x-0 bottom-0 border-t border-line bg-ground/95 p-3 backdrop-blur">
           <div className="mx-auto max-w-xl">
             <button className="btn btn-primary w-full" disabled={busy || doneAreas < areas.length} onClick={() => void complete()}>
-              {doneAreas < areas.length ? `${areas.length - doneAreas} area(s) to finish` : 'Finish and send to client'}
+              {doneAreas < areas.length ? `${areas.length - doneAreas} ${groups ? 'part(s)' : 'area(s)'} to finish` : 'Finish and send to client'}
             </button>
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+/** Taking and sending photos for one area or sub-section: sent now if there is a signal, otherwise kept on the phone. */
+function usePhotos(jobId: string, areaId: string, onChange: () => void) {
+  const { session } = useAuth()
+  const outbox = useCrewOutbox()
+  const saved = outbox.entries.filter((e) => e.jobId === jobId && e.areaId === areaId)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+
+  async function upload(file: File | undefined, kind: 'photo_before' | 'photo_after', planItemId?: string) {
+    if (!file) return
+    const userId = session?.user.id
+    if (!userId) return setError('Please sign in again.')
+    setBusy(true)
+    setError(null)
+    setNote(null)
+    try {
+      // Where and when the photo was taken is fixed now, so a late upload still records the real time and place.
+      const pos = await position()
+      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : file.type === 'image/heic' ? 'heic' : 'jpg'
+      const outcome = await outbox.submit({
+        id: crypto.randomUUID(),
+        userId,
+        jobId,
+        areaId,
+        planItemId: planItemId ?? null,
+        kind,
+        path: `${jobId}/${areaId}/${Date.now()}-${kind}.${ext}`,
+        mime: file.type || 'image/jpeg',
+        blob: file,
+        lat: pos.lat,
+        lng: pos.lng,
+        takenAt: new Date().toISOString(),
+      })
+      if (outcome === 'sent') onChange()
+      else setNote('Saved on this phone. It will upload as soon as you have a signal.')
+    } catch (err) {
+      setError(friendlyError(err))
+    }
+    setBusy(false)
+  }
+
+  return { busy, error, setError, note, setNote, saved, upload }
+}
+
+function SavedNotice({ saved }: { saved: { status: string }[] }) {
+  if (saved.length === 0) return null
+  const waiting = saved.filter((e) => e.status === 'waiting').length
+  return (
+    <p className="rounded-lg bg-line/50 p-2 text-xs text-ink-2">
+      {waiting > 0 && `${waiting} photo${waiting === 1 ? '' : 's'} saved on this phone, waiting to upload. `}
+      {saved.some((e) => e.status === 'failed') && 'One could not be sent: see the notice at the top.'}
+    </p>
   )
 }
 
@@ -215,12 +309,8 @@ function AreaCard({
   urls: Record<string, string>
   onChange: () => void
 }) {
-  const { session } = useAuth()
-  const outbox = useCrewOutbox()
-  const saved = outbox.entries.filter((e) => e.jobId === jobId && e.areaId === area.id)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [note, setNote] = useState<string | null>(null)
+  const photos = usePhotos(jobId, area.id, onChange)
+  const { busy, error, setError, note, setNote, saved, upload } = photos
   const before = useRef<HTMLInputElement>(null)
   const after = useRef<HTMLInputElement>(null)
 
@@ -234,38 +324,6 @@ function AreaCard({
           .upsert({ job_id: jobId, area_id: area.id, standard_id: std, done_by_operative: true }, { onConflict: 'job_id,area_id,standard_id' })
     if (err) return setError(friendlyError(err))
     onChange()
-  }
-
-  async function upload(file: File | undefined, kind: 'photo_before' | 'photo_after') {
-    if (!file) return
-    const userId = session?.user.id
-    if (!userId) return setError('Please sign in again.')
-    setBusy(true)
-    setError(null)
-    setNote(null)
-    try {
-      // Where and when the photo was taken is fixed now, so a late upload still records the real time and place.
-      const pos = await position()
-      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : file.type === 'image/heic' ? 'heic' : 'jpg'
-      const outcome = await outbox.submit({
-        id: crypto.randomUUID(),
-        userId,
-        jobId,
-        areaId: area.id,
-        kind,
-        path: `${jobId}/${area.id}/${Date.now()}-${kind}.${ext}`,
-        mime: file.type || 'image/jpeg',
-        blob: file,
-        lat: pos.lat,
-        lng: pos.lng,
-        takenAt: new Date().toISOString(),
-      })
-      if (outcome === 'sent') onChange()
-      else setNote('Saved on this phone. It will upload as soon as you have a signal.')
-    } catch (err) {
-      setError(friendlyError(err))
-    }
-    setBusy(false)
   }
 
   async function robotAssist() {
@@ -311,45 +369,112 @@ function AreaCard({
           </button>
         </div>
       )}
-      {saved.length > 0 && (
-        <p className="rounded-lg bg-line/50 p-2 text-xs text-ink-2">
-          {saved.filter((e) => e.status === 'waiting').length > 0 &&
-            `${saved.filter((e) => e.status === 'waiting').length} photo${saved.filter((e) => e.status === 'waiting').length === 1 ? '' : 's'} saved on this phone, waiting to upload. `}
-          {saved.some((e) => e.status === 'failed') && 'One could not be sent: see the notice at the top.'}
-        </p>
-      )}
+      <SavedNotice saved={saved} />
       {note && <p className="text-xs text-primary">{note}</p>}
       <ErrorNote message={error} />
     </div>
   )
 }
 
-/** What the work schedule says to do on the day of this visit, grouped as the client will see it. */
-function TodaysWork({ plan, start }: { plan: Plan; start: string }) {
-  const day = dayOf(new Date(start))
-  const groups = workForDay(plan, day)
+/** One sub-section of the day's work: its cleaning areas to tick, and the photos for that part of the site. */
+function GroupCard({
+  jobId,
+  section,
+  groupId,
+  name,
+  rows,
+  editable,
+  done,
+  evidence,
+  urls,
+  onChange,
+}: {
+  jobId: string
+  section: string
+  groupId: string
+  name: string
+  rows: { row: { id: string; name: string }; method: keyof typeof METHOD_LABEL }[]
+  editable: boolean
+  done: (id: string) => boolean
+  evidence: EvidenceRow[]
+  urls: Record<string, string>
+  onChange: () => void
+}) {
+  const { busy, error, setError, note, saved, upload } = usePhotos(jobId, groupId, onChange)
+  const before = useRef<HTMLInputElement>(null)
+  const after = useRef<HTMLInputElement>(null)
+  const rowShot = useRef<HTMLInputElement>(null)
+  const [rowFor, setRowFor] = useState<string | null>(null)
+
+  async function toggle(id: string) {
+    setError(null)
+    const db = supabase()
+    const { error: err } = done(id)
+      ? await db.from('plan_results').update({ done: false }).eq('job_id', jobId).eq('plan_item_id', id)
+      : await db.from('plan_results').upsert({ job_id: jobId, plan_item_id: id, done: true }, { onConflict: 'job_id,plan_item_id' })
+    if (err) return setError(friendlyError(err))
+    onChange()
+  }
+
   return (
-    <section className="card space-y-3 p-4">
-      <h2 className="text-lg">Today's work: {DAY_FULL[day]}</h2>
-      {groups.length === 0 ? (
-        <p className="text-sm text-ink-2">The schedule has no cleaning areas planned for {DAY_FULL[day]}. Do the areas on the checklist below.</p>
-      ) : (
-        groups.map((g) => (
-          <div key={g.sub.id}>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-2">
-              {g.section} · {g.sub.name}
-            </p>
-            <ul className="mt-1 space-y-1">
-              {g.rows.map(({ row, method }) => (
-                <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
-                  <span>{row.name}</span>
-                  <span className="shrink-0 rounded-full bg-tint px-2 py-0.5 text-xs font-semibold text-primary">{METHOD_LABEL[method]}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))
+    <div className="card space-y-3 p-4">
+      <div>
+        <p className="font-semibold">{name}</p>
+        <p className="text-xs text-ink-2">{section}</p>
+      </div>
+      <ul className="space-y-1">
+        {rows.map(({ row, method }) => (
+          <li key={row.id} className="flex items-center justify-between gap-2">
+            <label className={`flex min-h-[44px] flex-1 items-center gap-3 ${editable ? 'cursor-pointer' : ''}`}>
+              <input type="checkbox" className="size-5 shrink-0 accent-[var(--color-primary)]" checked={done(row.id)} disabled={!editable} onChange={() => void toggle(row.id)} />
+              <span className="text-sm">{row.name}</span>
+              <span className="shrink-0 rounded-full bg-tint px-2 py-0.5 text-xs font-semibold text-primary">{METHOD_LABEL[method]}</span>
+            </label>
+            {editable && (
+              <button
+                className="btn btn-ghost shrink-0 text-xs"
+                disabled={busy}
+                aria-label={`Photo of ${row.name}`}
+                onClick={() => {
+                  setRowFor(row.id)
+                  rowShot.current?.click()
+                }}
+              >
+                Photo
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <PhotoStrip rows={evidence} urls={urls} />
+      {editable && (
+        <div className="flex flex-wrap gap-2">
+          <input ref={before} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void upload(e.target.files?.[0], 'photo_before')} />
+          <input ref={after} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void upload(e.target.files?.[0], 'photo_after')} />
+          <input
+            ref={rowShot}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              const id = rowFor ?? undefined
+              e.target.value = ''
+              void upload(f, 'photo_after', id)
+            }}
+          />
+          <button className="btn btn-ghost text-sm" disabled={busy} onClick={() => before.current?.click()}>
+            Before photo
+          </button>
+          <button className="btn btn-primary text-sm" disabled={busy} onClick={() => after.current?.click()}>
+            {busy ? 'Uploading…' : 'After photo'}
+          </button>
+        </div>
       )}
-    </section>
+      <SavedNotice saved={saved} />
+      {note && <p className="text-xs text-primary">{note}</p>}
+      <ErrorNote message={error} />
+    </div>
   )
 }
