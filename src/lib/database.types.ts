@@ -427,6 +427,7 @@ export type Database = {
       }
       evidence: {
         Row: {
+          plan_item_id: string | null
           area_id: string
           created_at: string
           id: string
@@ -440,6 +441,7 @@ export type Database = {
           within_geofence: boolean | null
         }
         Insert: {
+          plan_item_id?: string | null
           area_id: string
           created_at?: string
           id?: string
@@ -453,6 +455,7 @@ export type Database = {
           within_geofence?: boolean | null
         }
         Update: {
+          plan_item_id?: string | null
           area_id?: string
           created_at?: string
           id?: string
@@ -969,6 +972,47 @@ export type Database = {
           },
           {
             foreignKeyName: "payments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_results: {
+        Row: {
+          done: boolean
+          done_at: string | null
+          done_by: string | null
+          job_id: string
+          plan_item_id: string
+          verdict: string | null
+          verdict_at: string | null
+          verdict_by: string | null
+        }
+        Insert: {
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          job_id: string
+          plan_item_id: string
+          verdict?: string | null
+          verdict_at?: string | null
+          verdict_by?: string | null
+        }
+        Update: {
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          job_id?: string
+          plan_item_id?: string
+          verdict?: string | null
+          verdict_at?: string | null
+          verdict_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_results_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
@@ -1845,6 +1889,10 @@ export type Database = {
       haversine_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
+      }
+      job_plan_day: {
+        Args: { p_job: string }
+        Returns: string
       }
       mark_notifications_read: {
         Args: { p_ids?: string[] }

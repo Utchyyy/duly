@@ -8,7 +8,14 @@ import type { Json } from '#/lib/database.types'
 import { label, money, must, useLoad } from '#/lib/format'
 import { parseSchedule, totalMinutes } from '#/lib/schedule'
 import { supabase } from '#/lib/supabase'
-import { parseLegend, parsePlan } from '#/lib/workplan'
+import {
+  DAY_FULL,
+  METHOD_LABEL,
+  parseLegend,
+  parsePlan,
+  workForDay,
+} from '#/lib/workplan'
+import type { Day } from '#/lib/workplan'
 
 export const Route = createFileRoute('/admin/cases/$briefId')({
   component: CaseFile,
@@ -39,77 +46,96 @@ async function loadCase(briefId: string) {
       .eq('id', briefId)
       .single(),
   )
-  const [versions, quotes, contracts, jobs, timeline, schedules] = await Promise.all([
-    db
-      .from('brief_versions')
-      .select(
-        'version, schedule, notes, preferred_days, preferred_start, locked_at, locked_by, created_at',
-      )
-      .eq('brief_id', briefId)
-      .order('version'),
-    db
-      .from('quotes')
-      .select(
-        'id, status, brief_version, total, currency, lines, urgency, valid_until, submitted_at, created_at, vendor:organisations(id, name)',
-      )
-      .eq('brief_id', briefId)
-      .order('created_at'),
-    db
-      .from('contracts')
-      .select(
-        'id, status, brief_version, billing, monthly_value, currency, payment_terms_days, sla_response_hours, created_at, vendor:organisations!contracts_vendor_org_id_fkey(name)',
-      )
-      .eq('brief_id', briefId),
-    db
-      .from('jobs')
-      .select(
-        'id, status, brief_version, scheduled_start, scheduled_end, value, currency, created_at, vendor:organisations!jobs_vendor_org_id_fkey(name)',
-      )
-      .eq('brief_id', briefId)
-      .order('scheduled_start'),
-    db.rpc('admin_case_timeline', { p_brief: briefId, p_limit: 5000 }),
-    db.from('work_schedules').select('id, quote_id, status, plan, legend, submitted_at, locked_at, vendor:organisations(name)').eq('brief_id', briefId).order('created_at'),
-  ])
+  const [versions, quotes, contracts, jobs, timeline, schedules] =
+    await Promise.all([
+      db
+        .from('brief_versions')
+        .select(
+          'version, schedule, notes, preferred_days, preferred_start, locked_at, locked_by, created_at',
+        )
+        .eq('brief_id', briefId)
+        .order('version'),
+      db
+        .from('quotes')
+        .select(
+          'id, status, brief_version, total, currency, lines, urgency, valid_until, submitted_at, created_at, vendor:organisations(id, name)',
+        )
+        .eq('brief_id', briefId)
+        .order('created_at'),
+      db
+        .from('contracts')
+        .select(
+          'id, status, brief_version, billing, monthly_value, currency, payment_terms_days, sla_response_hours, created_at, vendor:organisations!contracts_vendor_org_id_fkey(name)',
+        )
+        .eq('brief_id', briefId),
+      db
+        .from('jobs')
+        .select(
+          'id, status, brief_version, quote_id, scheduled_start, scheduled_end, value, currency, created_at, vendor:organisations!jobs_vendor_org_id_fkey(name)',
+        )
+        .eq('brief_id', briefId)
+        .order('scheduled_start'),
+      db.rpc('admin_case_timeline', { p_brief: briefId, p_limit: 5000 }),
+      db
+        .from('work_schedules')
+        .select(
+          'id, quote_id, status, plan, legend, submitted_at, locked_at, vendor:organisations(name)',
+        )
+        .eq('brief_id', briefId)
+        .order('created_at'),
+    ])
   const jobRows = must(jobs)
   const jobIds = jobRows.map((j) => j.id)
   const contractRows = must(contracts)
   const none = ['00000000-0000-0000-0000-000000000000']
-  const [evidence, results, issues, payments, checkIns] = await Promise.all([
-    db
-      .from('evidence')
-      .select(
-        'id, job_id, area_id, kind, storage_path, within_geofence, taken_at, created_at, lat, lng',
-      )
-      .in('job_id', jobIds.length ? jobIds : none)
-      .order('created_at'),
-    db
-      .from('area_results')
-      .select(
-        'job_id, area_id, standard_id, done_by_operative, done_at, verdict, verdict_at',
-      )
-      .in('job_id', jobIds.length ? jobIds : none),
-    db
-      .from('issues')
-      .select(
-        'id, job_id, kind, description, status, resolution, created_at, resolved_at, sla_due_at, plan_label',
-      )
-      .in('job_id', jobIds.length ? jobIds : none)
-      .order('created_at'),
-    db
-      .from('payments')
-      .select(
-        'id, job_id, contract_id, kind, amount, currency, status, provider, provider_ref, due_at, paid_at, note, created_at',
-      )
-      .or(
-        `job_id.in.(${(jobIds.length ? jobIds : none).join(',')}),contract_id.in.(${(contractRows.length ? contractRows.map((c) => c.id) : none).join(',')})`,
-      )
-      .order('created_at'),
-    db
-      .from('job_events')
-      .select('job_id, kind, at, lat, lng, within_geofence')
-      .in('job_id', jobIds.length ? jobIds : none)
-      .eq('kind', 'check_in'),
-  ])
+  const [evidence, results, issues, payments, checkIns, planResults, planDays] =
+    await Promise.all([
+      db
+        .from('evidence')
+        .select(
+          'id, job_id, area_id, kind, storage_path, within_geofence, taken_at, created_at, lat, lng',
+        )
+        .in('job_id', jobIds.length ? jobIds : none)
+        .order('created_at'),
+      db
+        .from('area_results')
+        .select(
+          'job_id, area_id, standard_id, done_by_operative, done_at, verdict, verdict_at',
+        )
+        .in('job_id', jobIds.length ? jobIds : none),
+      db
+        .from('issues')
+        .select(
+          'id, job_id, kind, description, status, resolution, created_at, resolved_at, sla_due_at, plan_label',
+        )
+        .in('job_id', jobIds.length ? jobIds : none)
+        .order('created_at'),
+      db
+        .from('payments')
+        .select(
+          'id, job_id, contract_id, kind, amount, currency, status, provider, provider_ref, due_at, paid_at, note, created_at',
+        )
+        .or(
+          `job_id.in.(${(jobIds.length ? jobIds : none).join(',')}),contract_id.in.(${(contractRows.length ? contractRows.map((c) => c.id) : none).join(',')})`,
+        )
+        .order('created_at'),
+      db
+        .from('job_events')
+        .select('job_id, kind, at, lat, lng, within_geofence')
+        .in('job_id', jobIds.length ? jobIds : none)
+        .eq('kind', 'check_in'),
+      db
+        .from('plan_results')
+        .select('job_id, plan_item_id, done, done_at, verdict, verdict_at')
+        .in('job_id', jobIds.length ? jobIds : none),
+      // The weekday of each visit when the work schedule decided the check (null: the brief's standards did).
+      Promise.all(
+        jobIds.map(async (id) => {
+          const r = await db.rpc('job_plan_day', { p_job: id })
+          return [id, r.error ? null : (r.data as string | null)] as const
+        }),
+      ),
+    ])
   return {
     brief,
     versions: must(versions),
@@ -118,6 +144,8 @@ async function loadCase(briefId: string) {
     jobs: jobRows,
     timeline: must(timeline),
     schedules: must(schedules),
+    planResults: must(planResults),
+    planDays: Object.fromEntries(planDays) as Record<string, string | null>,
     evidence: must(evidence) as (EvidenceRow & {
       job_id: string
       taken_at: string | null
@@ -308,6 +336,11 @@ function JobRecord({
   const issues = data.issues.filter((i) => i.job_id === job.id)
   const payments = data.payments.filter((p) => p.job_id === job.id)
   const checkIn = data.checkIns.find((c) => c.job_id === job.id)
+  const ws = data.schedules.find(
+    (w) => w.quote_id === job.quote_id && w.status === 'locked',
+  )
+  const plan = ws ? parsePlan(ws.plan) : null
+  const planDay = data.planDays[job.id] ?? null
 
   return (
     <Section title={`Job: ${job.vendor?.name}, ${stamp(job.scheduled_start)}`}>
@@ -325,56 +358,117 @@ function JobRecord({
           : 'No check-in has been recorded.'}
       </p>
 
-      {schedule
-        .flatMap((s) => s.areas)
-        .map((area) => {
-          const photos = evidence.filter((e) => e.area_id === area.id)
-          return (
-            <div key={area.id} className="card space-y-2 p-4">
-              <p className="font-semibold">{area.name}</p>
-              <ul className="space-y-1 text-sm">
-                {area.standards.map((st) => {
-                  const r = results.find(
-                    (x) => x.area_id === area.id && x.standard_id === st.id,
-                  )
-                  return (
-                    <li key={st.id}>
-                      {st.text}
-                      <span className="block text-ink-2">
-                        Crew:{' '}
-                        {r?.done_by_operative
-                          ? `ticked ${stamp(r.done_at)}`
-                          : 'not ticked'}{' '}
-                        · Client verdict:{' '}
-                        {r?.verdict
-                          ? `${label(r.verdict)} ${stamp(r.verdict_at)}`
-                          : 'none yet'}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-              <PhotoStrip rows={photos} urls={urls} />
-              {photos.length > 0 && (
-                <ul className="text-xs text-ink-2">
-                  {photos.map((p) => (
-                    <li key={p.id}>
-                      {p.kind === 'photo_before' ? 'Before' : 'After'}: taken{' '}
-                      {p.taken_at ? stamp(p.taken_at) : 'time not recorded'},
-                      received {stamp(p.created_at)},{' '}
-                      {p.within_geofence === false
-                        ? 'off site'
-                        : p.within_geofence
-                          ? 'on site'
-                          : 'location unknown'}
-                      {p.lat != null ? ` (${p.lat}, ${p.lng})` : ''}
-                    </li>
-                  ))}
+      {plan && planDay && (
+        <>
+          <p className="text-sm">
+            Checked against the work schedule for {DAY_FULL[planDay as Day]}:
+            each cleaning area planned that day, with when the crew ticked it
+            and the client's verdict.
+          </p>
+          {workForDay(plan, planDay as Day).map((g) => {
+            const photos = evidence.filter((e) => e.area_id === g.sub.id)
+            return (
+              <div key={g.sub.id} className="card space-y-2 p-4">
+                <p className="font-semibold">
+                  {g.section} · {g.sub.name}
+                </p>
+                <ul className="space-y-1 text-sm">
+                  {g.rows.map(({ row, method }) => {
+                    const r = data.planResults.find(
+                      (x) => x.job_id === job.id && x.plan_item_id === row.id,
+                    )
+                    return (
+                      <li key={row.id}>
+                        {row.name} ({METHOD_LABEL[method]})
+                        <span className="block text-ink-2">
+                          Crew:{' '}
+                          {r?.done
+                            ? `ticked ${stamp(r.done_at)}`
+                            : 'not ticked'}{' '}
+                          · Client verdict:{' '}
+                          {r?.verdict
+                            ? `${label(r.verdict)} ${stamp(r.verdict_at)}`
+                            : 'none yet'}
+                        </span>
+                      </li>
+                    )
+                  })}
                 </ul>
-              )}
-            </div>
-          )
-        })}
+                <PhotoStrip rows={photos} urls={urls} />
+                {photos.length > 0 && (
+                  <ul className="text-xs text-ink-2">
+                    {photos.map((p) => (
+                      <li key={p.id}>
+                        {p.kind === 'photo_before' ? 'Before' : 'After'}: taken{' '}
+                        {p.taken_at ? stamp(p.taken_at) : 'time not recorded'},
+                        received {stamp(p.created_at)},{' '}
+                        {p.within_geofence === false
+                          ? 'off site'
+                          : p.within_geofence
+                            ? 'on site'
+                            : 'location unknown'}
+                        {p.lat != null ? ` (${p.lat}, ${p.lng})` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
+        </>
+      )}
+
+      {!(plan && planDay) &&
+        schedule
+          .flatMap((s) => s.areas)
+          .map((area) => {
+            const photos = evidence.filter((e) => e.area_id === area.id)
+            return (
+              <div key={area.id} className="card space-y-2 p-4">
+                <p className="font-semibold">{area.name}</p>
+                <ul className="space-y-1 text-sm">
+                  {area.standards.map((st) => {
+                    const r = results.find(
+                      (x) => x.area_id === area.id && x.standard_id === st.id,
+                    )
+                    return (
+                      <li key={st.id}>
+                        {st.text}
+                        <span className="block text-ink-2">
+                          Crew:{' '}
+                          {r?.done_by_operative
+                            ? `ticked ${stamp(r.done_at)}`
+                            : 'not ticked'}{' '}
+                          · Client verdict:{' '}
+                          {r?.verdict
+                            ? `${label(r.verdict)} ${stamp(r.verdict_at)}`
+                            : 'none yet'}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <PhotoStrip rows={photos} urls={urls} />
+                {photos.length > 0 && (
+                  <ul className="text-xs text-ink-2">
+                    {photos.map((p) => (
+                      <li key={p.id}>
+                        {p.kind === 'photo_before' ? 'Before' : 'After'}: taken{' '}
+                        {p.taken_at ? stamp(p.taken_at) : 'time not recorded'},
+                        received {stamp(p.created_at)},{' '}
+                        {p.within_geofence === false
+                          ? 'off site'
+                          : p.within_geofence
+                            ? 'on site'
+                            : 'location unknown'}
+                        {p.lat != null ? ` (${p.lat}, ${p.lng})` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
 
       {issues.length > 0 && (
         <div className="space-y-2">

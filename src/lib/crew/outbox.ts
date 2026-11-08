@@ -19,6 +19,8 @@ export type OutboxEntry = {
   userId: string
   jobId: string
   areaId: string
+  /** The cleaning area (from the work schedule) this photo shows, if the crew tagged one. The database files it under its sub-section. */
+  planItemId?: string | null
   kind: PhotoKind
   /** Where it will live in the evidence bucket: <job>/<area>/<time>-<kind>.<ext>. Fixed at capture. */
   path: string
@@ -83,6 +85,7 @@ export type PhotoSink = {
   insertEvidence: (row: {
     job_id: string
     area_id: string
+    plan_item_id?: string | null
     kind: PhotoKind
     storage_path: string
     taken_at: string
@@ -92,13 +95,14 @@ export type PhotoSink = {
 }
 
 /** Upload the file, then add the evidence row unless it is already there. Safe to call again after any failure. */
-export async function deliver(sink: PhotoSink, entry: Pick<OutboxEntry, 'jobId' | 'areaId' | 'kind' | 'path' | 'mime' | 'blob' | 'lat' | 'lng' | 'takenAt'>): Promise<void> {
+export async function deliver(sink: PhotoSink, entry: Pick<OutboxEntry, 'jobId' | 'areaId' | 'planItemId' | 'kind' | 'path' | 'mime' | 'blob' | 'lat' | 'lng' | 'takenAt'>): Promise<void> {
   try {
     await sink.upload(entry.path, entry.blob, entry.mime)
     if (!(await sink.evidenceExists(entry.path))) {
       await sink.insertEvidence({
         job_id: entry.jobId,
         area_id: entry.areaId,
+        ...(entry.planItemId ? { plan_item_id: entry.planItemId } : {}),
         kind: entry.kind,
         storage_path: entry.path,
         taken_at: entry.takenAt,
