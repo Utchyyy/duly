@@ -4,7 +4,7 @@ declare
   f jsonb; v_job uuid; v_total numeric; v_pol public.policies; r jsonb; n integer;
   v_first numeric; v_value numeric;
 begin
-  f := tests.book_job('sme');
+  f := tests.without_schedule(tests.book_job('sme'));   -- this suite walks the standards check, which still serves a job with no locked schedule
   v_job := (f ->> 'job')::uuid;
 
   -- Ranking is computed in SQL: ranks are 1..n in order, with no gaps.

@@ -193,7 +193,7 @@ function VisitCard({ v, members, onChange }: { v: Visit; members: CrewMember[]; 
         </p>
       )}
       {editable ? (
-        <AssignCrew jobId={v.job_id} assigned={crew.map((c) => ({ user_id: c.user_id, role: c.role }))} members={members} onChange={onChange} quietEmpty={v.attention === 'no_crew'} />
+        <AssignCrew jobId={v.job_id} assigned={crew.map((c) => ({ user_id: c.user_id, role: c.role }))} members={members} onChange={onChange} quietEmpty={v.attention === 'no_crew'} collapsible startOpen={v.attention === 'no_crew' || v.attention === 'crew_clash'} />
       ) : (
         <p className="text-sm text-ink-2">{crew.length > 0 ? crew.map((c) => c.name).join(', ') : 'No crew recorded'}</p>
       )}

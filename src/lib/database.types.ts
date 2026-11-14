@@ -1957,6 +1957,7 @@ export type Database = {
         Returns: string
       }
       approve_job: { Args: { p_job: string }; Returns: undefined }
+      job_check_mode: { Args: { p_job: string }; Returns: string }
       dispatch_board: {
         Args: { p_vendor: string; p_from: string; p_to: string }
         Returns: {

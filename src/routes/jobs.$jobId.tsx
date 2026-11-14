@@ -42,7 +42,7 @@ function Job() {
         .eq('id', jobId)
         .single(),
     )
-    const [version, events, evidence, results, payments, issues, workSchedule, planDay, planResults, reworkIssue] = await Promise.all([
+    const [version, events, evidence, results, payments, issues, workSchedule, planDay, planResults, reworkIssue, checkMode] = await Promise.all([
       db.from('brief_versions').select('schedule').eq('brief_id', job.brief_id).eq('version', job.brief_version).single(),
       db.from('job_events').select('id, kind, at, within_geofence, data').eq('job_id', jobId).order('at'),
       db.from('evidence').select('id, area_id, kind, storage_path, within_geofence, created_at').eq('job_id', jobId).order('created_at'),
@@ -57,6 +57,8 @@ function Job() {
       job.rework_of_issue
         ? db.from('issues').select('id, kind, description, status, plan_label, plan_item_id, raised_by').eq('id', job.rework_of_issue).maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      // 'plan': the schedule's areas are checked; 'photos': the schedule plans nothing today; 'standards': an older job with no schedule.
+      db.rpc('job_check_mode', { p_job: jobId }),
     ])
     const issueIds = must(issues).map((i) => i.id)
     const reworks = issueIds.length ? must(await db.from('jobs').select('id, status, scheduled_start, rework_of_issue').in('rework_of_issue', issueIds)) : []
@@ -73,6 +75,7 @@ function Job() {
       planDay: planDay.error ? null : ((planDay.data as string | null) as Day | null),
       planResults: planResults.error ? [] : (planResults.data ?? []),
       reworkIssue: reworkIssue.error ? null : reworkIssue.data,
+      mode: checkMode.error ? null : (checkMode.data as 'plan' | 'photos' | 'standards' | null),
       reworks: reworks as ReworkVisit[],
       me: me.user?.id,
     }
@@ -195,7 +198,8 @@ function Job() {
                       <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                         <div>
                           <p>
-                            {row.name} <span className="rounded-full bg-tint px-2 py-0.5 text-xs font-semibold text-primary">{METHOD_LABEL[method]}</span>
+                            {row.name}{' '}
+                            <span className="rounded-full bg-tint px-2 py-0.5 text-xs font-semibold text-primary">{row.standard ? 'Your standard' : METHOD_LABEL[method]}</span>
                           </p>
                           <p className="text-xs text-ink-2">{r?.done ? `Cleaner ticked this ${when(r.done_at)}` : 'Not ticked by the cleaner'}</p>
                         </div>
@@ -253,7 +257,27 @@ function Job() {
         </Section>
       )}
 
-      {['completed', 'quality_verified', 'paid', 'disputed'].includes(job.status) && !groups && (
+      {['completed', 'quality_verified', 'paid', 'disputed'].includes(job.status) && data.mode === 'photos' && (
+        <Section title={reviewing ? 'Check the work' : 'The work'}>
+          <p className="text-sm text-ink-2">
+            The schedule plans nothing for {DAY_FULL[dayOf(new Date(job.scheduled_start))]}, so there is no list of areas to check this time.
+            {reviewing ? ' Look at the photos, then approve the visit as a whole or report a problem below. Money is only released once you approve.' : ''}
+          </p>
+          <div className="card space-y-3 p-4">
+            <PhotoStrip rows={data.evidence} urls={urls} />
+          </div>
+          {reviewing && (
+            <div className="card space-y-2 p-4">
+              <ErrorNote message={actionError} />
+              <button className="btn btn-primary w-full" disabled={busy} onClick={() => void approve()}>
+                Approve the visit
+              </button>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {['completed', 'quality_verified', 'paid', 'disputed'].includes(job.status) && !groups && data.mode !== 'photos' && (
         <Section title={reviewing ? 'Check the work' : 'The work'}>
           {reviewing && (
             <p className="text-sm text-ink-2">Look at the photos and mark each standard. Money is only released once you approve.</p>

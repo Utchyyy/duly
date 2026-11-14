@@ -164,22 +164,33 @@ begin
   perform tests.as_user((f ->> 'crew')::uuid);
   perform tests.eq(public.job_plan_day(job), 'sun', 'the weekday follows local time, not UTC');
 
-  -- A schedule that plans nothing on the visit day: the brief standards decide, as before.
+  -- A schedule that plans nothing on the visit day: no area checklist, an after photo is all the crew need.
   f := pg_temp.book_with_plan('2026-06-09 10:00:00+00', ('{"sections":[{"id":"s1","name":"A","subsections":[{"id":"g1","name":"B","brief_area_id":null,"areas":[{"id":"r1","name":"C","days":{"mon":"clean"}}]}]}]}')::jsonb);
   job := (f ->> 'job')::uuid; -- a Tuesday
   perform tests.as_user((f ->> 'crew')::uuid);
-  perform tests.ok(public.job_plan_day(job) is null, 'a day with nothing planned has no schedule check');
+  perform tests.ok(public.job_plan_day(job) is null, 'a day with nothing planned has no area checklist');
+  perform tests.eq(public.job_check_mode(job), 'photos', 'it is a photos-only visit');
   perform public.check_in(job, 51.8893, 0.9043);
-  perform tests.throws(format('select public.complete_job(%L)', job), '%area(s) still need an after photo%', 'it falls back to the brief standards check');
+  perform tests.throws(format('select public.complete_job(%L)', job), '%at least one after photo%', 'the crew need at least one after photo');
+  insert into public.evidence (job_id, area_id, kind, storage_path, lat, lng) values (job, 'visit', 'photo_after', job || '/visit/1.jpg', 51.8893, 0.9043);
+  perform public.complete_job(job, 51.8893, 0.9043);
+  perform tests.eq((select status::text from public.jobs where id = job), 'completed', 'and then they can finish: no ticks are asked for');
+  perform tests.as_user((f ->> 'buyer')::uuid);
+  perform tests.eq((select planned_areas from public.visit_measures(job)), 0, 'there are no areas to count');
+  perform public.approve_job(job);
+  perform tests.eq((select status::text from public.jobs where id = job), 'quality_verified', 'the client approves the visit as a whole');
+  perform tests.as_su();
 end $$;
 
--- A job with no schedule is unchanged.
+-- A job with no locked schedule at all (made before schedules were built from the brief) keeps the standards check.
 do $$
 declare r jsonb;
 begin
   r := tests.book_job('sme');
+  delete from public.work_schedules where quote_id = (r ->> 'quote')::uuid;
   perform tests.as_user((r ->> 'crew')::uuid);
   perform tests.ok(public.job_plan_day((r ->> 'job')::uuid) is null, 'a job with no schedule keeps the standards check');
+  perform tests.eq(public.job_check_mode((r ->> 'job')::uuid), 'standards', 'and is in standards mode');
   perform tests.as_su();
   perform tests.crew_completes(r);
   perform tests.buyer_approves(r);
