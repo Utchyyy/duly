@@ -5,7 +5,7 @@ import type { EvidenceRow } from '#/components/Evidence'
 import { Gate } from '#/components/Gate'
 import { AppShell } from '#/components/Shells'
 import { Issues } from '#/components/Issues'
-import type { IssueArea } from '#/components/Issues'
+import type { IssueArea, ReworkVisit } from '#/components/Issues'
 import { WorkPlanView } from '#/components/WorkPlan'
 import { Badge, ErrorNote, Loading, Section, Table } from '#/components/ui'
 import { label, money, must, useLoad, when } from '#/lib/format'
@@ -37,12 +37,12 @@ function Job() {
       await db
         .from('jobs')
         .select(
-          'id, status, scheduled_start, scheduled_end, value, currency, brief_id, brief_version, buyer_org_id, quote_id, vendor:organisations!jobs_vendor_org_id_fkey(name), site:sites(name, town, postcode)',
+          'id, status, scheduled_start, scheduled_end, value, currency, brief_id, brief_version, buyer_org_id, quote_id, rework_of_issue, vendor:organisations!jobs_vendor_org_id_fkey(name), site:sites(name, town, postcode)',
         )
         .eq('id', jobId)
         .single(),
     )
-    const [version, events, evidence, results, payments, issues, workSchedule, planDay, planResults] = await Promise.all([
+    const [version, events, evidence, results, payments, issues, workSchedule, planDay, planResults, reworkIssue] = await Promise.all([
       db.from('brief_versions').select('schedule').eq('brief_id', job.brief_id).eq('version', job.brief_version).single(),
       db.from('job_events').select('id, kind, at, within_geofence, data').eq('job_id', jobId).order('at'),
       db.from('evidence').select('id, area_id, kind, storage_path, within_geofence, created_at').eq('job_id', jobId).order('created_at'),
@@ -53,7 +53,13 @@ function Job() {
       // The visit's weekday when the work schedule decides the check; null means the brief's standards apply.
       db.rpc('job_plan_day', { p_job: jobId }),
       db.from('plan_results').select('plan_item_id, done, done_at, verdict').eq('job_id', jobId),
+      // A rework visit is for one complaint: the area it names is the whole checklist.
+      job.rework_of_issue
+        ? db.from('issues').select('id, kind, description, status, plan_label, plan_item_id, raised_by').eq('id', job.rework_of_issue).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
     ])
+    const issueIds = must(issues).map((i) => i.id)
+    const reworks = issueIds.length ? must(await db.from('jobs').select('id, status, scheduled_start, rework_of_issue').in('rework_of_issue', issueIds)) : []
     const { data: me } = await db.auth.getUser()
     return {
       job,
@@ -66,6 +72,8 @@ function Job() {
       workSchedule: workSchedule.error ? null : workSchedule.data,
       planDay: planDay.error ? null : ((planDay.data as string | null) as Day | null),
       planResults: planResults.error ? [] : (planResults.data ?? []),
+      reworkIssue: reworkIssue.error ? null : reworkIssue.data,
+      reworks: reworks as ReworkVisit[],
       me: me.user?.id,
     }
   }, [jobId])
@@ -73,6 +81,7 @@ function Job() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [complaintArea, setComplaintArea] = useState<IssueArea | null>(null)
+  const [reworkNote, setReworkNote] = useState('')
 
   if (error) return <ErrorNote message={error} />
   if (!data) return <Loading />
@@ -80,7 +89,8 @@ function Job() {
   const reviewing = job.status === 'completed'
   const verdictOf = (area: string, std: string) => data.results.find((r) => r.area_id === area && r.standard_id === std)?.verdict ?? null
   // With a work schedule that plans something for this weekday, the planned cleaning areas are what the client checks.
-  const groups = data.workSchedule && data.planDay ? workForDay(parsePlan(data.workSchedule.plan), data.planDay) : null
+  const groups = data.workSchedule && data.planDay ? workForDay(parsePlan(data.workSchedule.plan), data.planDay, data.reworkIssue?.plan_item_id) : null
+  const isRework = Boolean(job.rework_of_issue)
   const resultOf = (id: string) => data.planResults.find((r) => r.plan_item_id === id)
   const plannedIds = (groups ?? []).flatMap((g) => g.rows.map((r) => r.row.id))
   const planAllMet = plannedIds.length > 0 && plannedIds.every((id) => resultOf(id)?.verdict === 'met')
@@ -97,6 +107,16 @@ function Job() {
     setActionError(null)
     const { error: err } = await supabase().from('area_results').update({ verdict }).eq('job_id', jobId).eq('area_id', area).eq('standard_id', std)
     if (err) setActionError(err.message)
+    reload()
+  }
+
+  async function reviewRework(accepted: boolean) {
+    setBusy(true)
+    setActionError(null)
+    const { error: err } = await supabase().rpc('review_rework', { p_job: jobId, p_accepted: accepted, p_note: reworkNote.trim() || undefined })
+    setBusy(false)
+    if (err) setActionError(err.message)
+    setReworkNote('')
     reload()
   }
 
@@ -123,12 +143,21 @@ function Job() {
           <Badge value={job.status} />
         </div>
         <p className="mt-1 text-ink-2">
-          {job.vendor?.name} · {job.site?.name}, {job.site?.town} · {money(job.value, job.currency)}
+          {job.vendor?.name} · {job.site?.name}, {job.site?.town} · {isRework ? 'No charge' : money(job.value, job.currency)}
         </p>
         <Link to="/briefs/$briefId" params={{ briefId: job.brief_id }} className="link-action text-sm font-medium text-primary">
           View the brief (v{job.brief_version})
         </Link>
       </div>
+
+      {isRework && data.reworkIssue && (
+        <div className="card space-y-1 border-primary p-4 text-sm">
+          <p className="font-semibold">A visit to put right a problem you reported</p>
+          {data.reworkIssue.plan_label && <p>About: {data.reworkIssue.plan_label}</p>}
+          <p className="text-ink-2">You said: {data.reworkIssue.description}</p>
+          <p className="text-ink-2">There is no charge for this visit. Once the cleaner has finished, check the area: accepting it closes your report and lets the original clean be approved.</p>
+        </div>
+      )}
 
       <Section title="What's happened">
         <ol className="space-y-2 border-l-2 border-line pl-4">
@@ -170,7 +199,7 @@ function Job() {
                           </p>
                           <p className="text-xs text-ink-2">{r?.done ? `Cleaner ticked this ${when(r.done_at)}` : 'Not ticked by the cleaner'}</p>
                         </div>
-                        {reviewing ? (
+                        {reviewing && !isRework ? (
                           <span className="flex flex-wrap gap-1">
                             <button className={`btn text-xs ${r?.verdict === 'met' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => void setPlanVerdict([row.id], 'met')}>
                               {r?.verdict === 'not_met' ? 'Accept now' : 'Looks right'}
@@ -186,7 +215,7 @@ function Job() {
                     )
                   })}
                 </ul>
-                {reviewing && open.length > 1 && (
+                {reviewing && !isRework && open.length > 1 && (
                   <button className="btn btn-ghost w-full text-sm" onClick={() => void setPlanVerdict(open, 'met')}>
                     Everything in {g.sub.name} looks right
                   </button>
@@ -194,7 +223,25 @@ function Job() {
               </div>
             )
           })}
-          {reviewing && (
+          {reviewing && isRework && (
+            <div className="card space-y-3 p-4">
+              <ErrorNote message={actionError} />
+              <label className="block text-sm">
+                A note (optional)
+                <textarea className="field mt-1 min-h-[72px] py-2" value={reworkNote} onChange={(e) => setReworkNote(e.target.value)} />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button className="btn btn-primary" disabled={busy} onClick={() => void reviewRework(true)}>
+                  It is right now: accept
+                </button>
+                <button className="btn btn-ghost" disabled={busy} onClick={() => void reviewRework(false)}>
+                  Still not right
+                </button>
+              </div>
+              <p className="text-xs text-ink-2">If it is still not right, Duly looks at it next.</p>
+            </div>
+          )}
+          {reviewing && !isRework && (
             <div className="card space-y-2 p-4">
               <ErrorNote message={actionError} />
               {planAnyNotMet && <p className="text-sm text-alert">Some areas weren't right. Report a problem on each so the vendor can put it right, then accept it once it is.</p>}
@@ -278,7 +325,7 @@ function Job() {
         </Section>
       )}
 
-      <Issues jobId={jobId} issues={data.issues} me={data.me} onChange={reload} area={complaintArea} onArea={setComplaintArea} />
+      <Issues jobId={jobId} issues={data.issues} me={data.me} onChange={reload} area={complaintArea} onArea={setComplaintArea} reworks={data.reworks} />
 
       {data.payments.length > 0 && (
         <Section title="Money">

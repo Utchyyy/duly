@@ -22,11 +22,11 @@ function JobSheet() {
     const job = must(
       await db
         .from('jobs')
-        .select('id, status, scheduled_start, scheduled_end, brief_id, brief_version, quote_id, site:sites(name, address_line1, town, postcode, access_notes)')
+        .select('id, status, scheduled_start, scheduled_end, brief_id, brief_version, quote_id, rework_of_issue, site:sites(name, address_line1, town, postcode, access_notes)')
         .eq('id', jobId)
         .single(),
     )
-    const [version, evidence, results, events, workSchedule, planDay, planResults] = await Promise.all([
+    const [version, evidence, results, events, workSchedule, planDay, planResults, booked] = await Promise.all([
       db.from('brief_versions').select('schedule, notes').eq('brief_id', job.brief_id).eq('version', job.brief_version).single(),
       db.from('evidence').select('id, area_id, kind, storage_path, within_geofence, created_at').eq('job_id', jobId).order('created_at'),
       db.from('area_results').select('area_id, standard_id, done_by_operative, verdict').eq('job_id', jobId),
@@ -35,7 +35,12 @@ function JobSheet() {
       // The visit's weekday when the work schedule decides the check; null means the brief's standards apply.
       db.rpc('job_plan_day', { p_job: jobId }),
       db.from('plan_results').select('plan_item_id, done').eq('job_id', jobId),
+      // A rework visit is for one cleaning area: the booking records which (the crew cannot read the client's report itself).
+      job.rework_of_issue
+        ? db.from('job_events').select('data').eq('job_id', jobId).eq('kind', 'status_change').order('at').limit(1)
+        : Promise.resolve({ data: null, error: null }),
     ])
+    const bookedData = (booked.data?.[0]?.data ?? null) as { area?: string; item?: string } | null
     return {
       job,
       schedule: parseSchedule(must(version).schedule),
@@ -47,6 +52,7 @@ function JobSheet() {
       plan: workSchedule.error || !workSchedule.data ? null : parsePlan(workSchedule.data.plan),
       planDay: planDay.error ? null : ((planDay.data as string | null) as Day | null),
       planResults: planResults.error ? [] : (planResults.data ?? []),
+      rework: job.rework_of_issue ? { area: bookedData?.area ?? null, item: bookedData?.item ?? null } : null,
     }
   }, [jobId])
   const urls = useSignedUrls(data?.evidence)
@@ -116,7 +122,7 @@ function JobSheet() {
 
   const ticked = (area: string, std: string) => data.results.some((r) => r.area_id === area && r.standard_id === std && r.done_by_operative)
   // With a work schedule that plans something for this weekday, the planned cleaning areas are the checklist.
-  const groups = data.plan && data.planDay ? workForDay(data.plan, data.planDay) : null
+  const groups = data.plan && data.planDay ? workForDay(data.plan, data.planDay, data.rework?.item) : null
   const rowDone = (id: string) => data.planResults.some((r) => r.plan_item_id === id && r.done)
   const hasAfter = (areaId: string) => data.evidence.some((e) => e.area_id === areaId && e.kind === 'photo_after')
   const areas = groups
@@ -154,6 +160,13 @@ function JobSheet() {
         {data.notes && <p className="card mt-2 p-3 text-sm">Client notes: {data.notes}</p>}
       </div>
 
+      {data.rework && (
+        <p className="card border-primary p-3 text-sm">
+          <span className="font-semibold">Rework visit:</span> a client reported a problem, so you are coming back to put one area right
+          {data.rework.area ? `: ${data.rework.area}` : ''}. Tick it, take an after photo and finish. There is nothing else to do on this visit.
+        </p>
+      )}
+
       {message && <p className="rounded-lg bg-tint p-3 text-sm text-primary">{message}</p>}
       <ErrorNote
         message={
@@ -177,7 +190,7 @@ function JobSheet() {
         <>
           {working && (
             <p className="text-sm text-ink-2">
-              {DAY_FULL[data.planDay]}'s work: tick each cleaning area as you finish it, and take an after photo for every part. {doneAreas} of {groups.length} parts done.
+              {data.rework ? 'Tick the area when it is right, and take an after photo.' : `${DAY_FULL[data.planDay]}'s work: tick each cleaning area as you finish it, and take an after photo for every part.`} {doneAreas} of {groups.length} parts done.
             </p>
           )}
           {groups.map((g) => (

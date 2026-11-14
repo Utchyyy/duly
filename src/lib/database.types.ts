@@ -624,6 +624,7 @@ export type Database = {
           currency: string
           id: string
           quote_id: string | null
+          rework_of_issue: string | null
           scheduled_end: string
           scheduled_start: string
           site_id: string
@@ -641,6 +642,7 @@ export type Database = {
           currency?: string
           id?: string
           quote_id?: string | null
+          rework_of_issue?: string | null
           scheduled_end: string
           scheduled_start: string
           site_id: string
@@ -658,6 +660,7 @@ export type Database = {
           currency?: string
           id?: string
           quote_id?: string | null
+          rework_of_issue?: string | null
           scheduled_end?: string
           scheduled_start?: string
           site_id?: string
@@ -693,6 +696,13 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_rework_of_issue_fkey"
+            columns: ["rework_of_issue"]
+            isOneToOne: false
+            referencedRelation: "issues"
             referencedColumns: ["id"]
           },
           {
@@ -1947,6 +1957,26 @@ export type Database = {
         Returns: string
       }
       approve_job: { Args: { p_job: string }; Returns: undefined }
+      book_rework: {
+        Args: { p_issue: string; p_start: string }
+        Returns: string
+      }
+      review_rework: {
+        Args: { p_job: string; p_accepted: boolean; p_note?: string }
+        Returns: undefined
+      }
+      vendor_rework: {
+        Args: { p_vendor: string; p_from: string; p_to: string }
+        Returns: {
+          complaints: number
+          reworks_booked: number
+          reworks_accepted: number
+          reworks_rejected: number
+          reworks_open: number
+          awaiting_rework: number
+          avg_hours_to_put_right: number | null
+        }[]
+      }
       check_in: {
         Args: { p_job: string; p_lat: number; p_lng: number }
         Returns: Json

@@ -15,7 +15,7 @@ function AdminIssues() {
   const { data, error, reload } = useLoad(async () => {
     let q = supabase()
       .from('issues')
-      .select('id, kind, description, status, resolution, sla_due_at, created_at, job_id, plan_label, job:jobs(scheduled_start, vendor:organisations!jobs_vendor_org_id_fkey(name), site:sites(name, town))')
+      .select('id, kind, description, status, resolution, sla_due_at, created_at, job_id, plan_label, job:jobs!issues_job_id_fkey(scheduled_start, vendor:organisations!jobs_vendor_org_id_fkey(name), site:sites(name, town))')
       .order('created_at', { ascending: false })
     if (!showResolved) q = q.neq('status', 'resolved')
     return must(await q)
