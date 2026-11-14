@@ -1511,8 +1511,10 @@ export type Database = {
           jobs_completed: number
           on_time_rate: number | null
           org_id: string
+          plan_followed_rate: number | null
           quality_score: number | null
           repeat_client_rate: number | null
+          right_first_time_rate: number | null
           standards_met_rate: number | null
         }
         Insert: {
@@ -1521,8 +1523,10 @@ export type Database = {
           jobs_completed?: number
           on_time_rate?: number | null
           org_id: string
+          plan_followed_rate?: number | null
           quality_score?: number | null
           repeat_client_rate?: number | null
+          right_first_time_rate?: number | null
           standards_met_rate?: number | null
         }
         Update: {
@@ -1531,8 +1535,10 @@ export type Database = {
           jobs_completed?: number
           on_time_rate?: number | null
           org_id?: string
+          plan_followed_rate?: number | null
           quality_score?: number | null
           repeat_client_rate?: number | null
+          right_first_time_rate?: number | null
           standards_met_rate?: number | null
         }
         Relationships: [

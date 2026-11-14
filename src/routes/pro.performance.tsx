@@ -26,12 +26,13 @@ function ProPerformance() {
   const { data, error } = useLoad(async () => {
     const db = supabase()
     const { from, to } = rangeDates(Number(range))
-    const [summary, visits, areas] = await Promise.all([
+    const [summary, visits, areas, score] = await Promise.all([
       db.rpc('vendor_operations', { p_vendor: vendor.id, p_from: from, p_to: to }),
       db.rpc('vendor_visits', { p_vendor: vendor.id, p_from: from, p_to: to }),
       db.rpc('vendor_problem_areas', { p_vendor: vendor.id, p_from: from, p_to: to }),
+      db.from('vendor_scores').select('quality_score, jobs_completed').eq('org_id', vendor.id).maybeSingle(),
     ])
-    return { summary: must(summary)[0], visits: must(visits), areas: must(areas) }
+    return { summary: must(summary)[0], visits: must(visits), areas: must(areas), score: score.error ? (() => { throw new Error(score.error.message) })() : score.data }
   }, [vendor.id, range])
 
   if (error) return <ErrorNote message={error} />
@@ -62,6 +63,11 @@ function ProPerformance() {
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Tile
+              label="Your Duly score"
+              value={data.score?.quality_score == null ? '–' : String(Math.round(data.score.quality_score))}
+              note="Out of 100, over all your visits. It is built from the measures below, and it is what clients' lists are ordered by."
+            />
             <Tile label="Visits checked in" value={String(s.visits)} />
             <Tile label="On time" value={pct(s.on_time_rate)} note={s.avg_late_minutes ? `Average ${Math.round(s.avg_late_minutes)} min after the start time` : 'Arrived by the start time'} watch={s.on_time_rate != null && s.on_time_rate < 0.9} />
             <Tile label="Planned areas ticked" value={pct(s.plan_followed_rate)} note="Of the cleaning areas the plan called for" watch={s.plan_followed_rate != null && s.plan_followed_rate < 0.95} />
