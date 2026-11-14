@@ -31,6 +31,7 @@ import { Route as DraftsItemIdRouteImport } from './routes/drafts.$itemId'
 import { Route as DraftsNewRouteImport } from './routes/drafts.new'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 import { Route as ProIndexRouteImport } from './routes/pro.index'
+import { Route as ProDispatchRouteImport } from './routes/pro.dispatch'
 import { Route as ProJobsRouteImport } from './routes/pro.jobs'
 import { Route as ProPayoutsRouteImport } from './routes/pro.payouts'
 import { Route as ProPerformanceRouteImport } from './routes/pro.performance'
@@ -155,6 +156,11 @@ const ProIndexRoute = ProIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProRoute,
 } as any)
+const ProDispatchRoute = ProDispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
+  getParentRoute: () => ProRoute,
+} as any)
 const ProJobsRoute = ProJobsRouteImport.update({
   id: '/jobs',
   path: '/jobs',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/pro/dispatch': typeof ProDispatchRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
   '/pro/performance': typeof ProPerformanceRoute
@@ -275,6 +282,7 @@ export interface FileRoutesByTo {
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/pro/dispatch': typeof ProDispatchRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
   '/pro/performance': typeof ProPerformanceRoute
@@ -313,6 +321,7 @@ export interface FileRoutesById {
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
+  '/pro/dispatch': typeof ProDispatchRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
   '/pro/performance': typeof ProPerformanceRoute
@@ -352,6 +361,7 @@ export interface FileRouteTypes {
     | '/drafts/$itemId'
     | '/drafts/new'
     | '/jobs/$jobId'
+    | '/pro/dispatch'
     | '/pro/jobs'
     | '/pro/payouts'
     | '/pro/performance'
@@ -386,6 +396,7 @@ export interface FileRouteTypes {
     | '/drafts/$itemId'
     | '/drafts/new'
     | '/jobs/$jobId'
+    | '/pro/dispatch'
     | '/pro/jobs'
     | '/pro/payouts'
     | '/pro/performance'
@@ -423,6 +434,7 @@ export interface FileRouteTypes {
     | '/drafts/$itemId'
     | '/drafts/new'
     | '/jobs/$jobId'
+    | '/pro/dispatch'
     | '/pro/jobs'
     | '/pro/payouts'
     | '/pro/performance'
@@ -613,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProIndexRouteImport
       parentRoute: typeof ProRoute
     }
+    '/pro/dispatch': {
+      id: '/pro/dispatch'
+      path: '/dispatch'
+      fullPath: '/pro/dispatch'
+      preLoaderRoute: typeof ProDispatchRouteImport
+      parentRoute: typeof ProRoute
+    }
     '/pro/jobs': {
       id: '/pro/jobs'
       path: '/jobs'
@@ -748,6 +767,7 @@ const CrewRouteChildren: CrewRouteChildren = {
 const CrewRouteWithChildren = CrewRoute._addFileChildren(CrewRouteChildren)
 
 interface ProRouteChildren {
+  ProDispatchRoute: typeof ProDispatchRoute
   ProJobsRoute: typeof ProJobsRoute
   ProPayoutsRoute: typeof ProPayoutsRoute
   ProPerformanceRoute: typeof ProPerformanceRoute
@@ -761,6 +781,7 @@ interface ProRouteChildren {
 }
 
 const ProRouteChildren: ProRouteChildren = {
+  ProDispatchRoute: ProDispatchRoute,
   ProJobsRoute: ProJobsRoute,
   ProPayoutsRoute: ProPayoutsRoute,
   ProPerformanceRoute: ProPerformanceRoute,

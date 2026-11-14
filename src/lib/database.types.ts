@@ -1957,6 +1957,41 @@ export type Database = {
         Returns: string
       }
       approve_job: { Args: { p_job: string }; Returns: undefined }
+      dispatch_board: {
+        Args: { p_vendor: string; p_from: string; p_to: string }
+        Returns: {
+          attention: string | null
+          awaiting_client: boolean
+          checked_in_at: string | null
+          crew: Json
+          crew_clash: boolean
+          held: boolean
+          is_rework: boolean
+          job_id: string
+          late_minutes: number | null
+          needs_crew: boolean
+          on_site_minutes: number | null
+          overrunning: boolean
+          planned_minutes: number
+          rework_area: string | null
+          scheduled_end: string
+          scheduled_start: string
+          site_name: string
+          status: string
+          town: string | null
+        }[]
+      }
+      dispatch_crew: {
+        Args: { p_vendor: string; p_from: string; p_to: string }
+        Returns: {
+          name: string
+          next_visit: string | null
+          on_a_visit: boolean
+          scheduled_minutes: number
+          user_id: string
+          visits: number
+        }[]
+      }
       book_rework: {
         Args: { p_issue: string; p_start: string }
         Returns: string
