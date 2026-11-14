@@ -8,6 +8,7 @@ import type { Json } from '#/lib/database.types'
 import { label, money, must, useLoad } from '#/lib/format'
 import { parseSchedule, totalMinutes } from '#/lib/schedule'
 import { supabase } from '#/lib/supabase'
+import { minutesText, timeAgainstPlan } from '#/lib/measures'
 import {
   DAY_FULL,
   METHOD_LABEL,
@@ -88,54 +89,76 @@ async function loadCase(briefId: string) {
   const jobIds = jobRows.map((j) => j.id)
   const contractRows = must(contracts)
   const none = ['00000000-0000-0000-0000-000000000000']
-  const [evidence, results, issues, payments, checkIns, planResults, planDays] =
-    await Promise.all([
-      db
-        .from('evidence')
-        .select(
-          'id, job_id, area_id, kind, storage_path, within_geofence, taken_at, created_at, lat, lng',
-        )
-        .in('job_id', jobIds.length ? jobIds : none)
-        .order('created_at'),
-      db
-        .from('area_results')
-        .select(
-          'job_id, area_id, standard_id, done_by_operative, done_at, verdict, verdict_at',
-        )
-        .in('job_id', jobIds.length ? jobIds : none),
-      db
-        .from('issues')
-        .select(
-          'id, job_id, kind, description, status, resolution, created_at, resolved_at, sla_due_at, plan_label',
-        )
-        .in('job_id', jobIds.length ? jobIds : none)
-        .order('created_at'),
-      db
-        .from('payments')
-        .select(
-          'id, job_id, contract_id, kind, amount, currency, status, provider, provider_ref, due_at, paid_at, note, created_at',
-        )
-        .or(
-          `job_id.in.(${(jobIds.length ? jobIds : none).join(',')}),contract_id.in.(${(contractRows.length ? contractRows.map((c) => c.id) : none).join(',')})`,
-        )
-        .order('created_at'),
-      db
-        .from('job_events')
-        .select('job_id, kind, at, lat, lng, within_geofence')
-        .in('job_id', jobIds.length ? jobIds : none)
-        .eq('kind', 'check_in'),
-      db
-        .from('plan_results')
-        .select('job_id, plan_item_id, done, done_at, verdict, verdict_at')
-        .in('job_id', jobIds.length ? jobIds : none),
-      // The weekday of each visit when the work schedule decided the check (null: the brief's standards did).
-      Promise.all(
-        jobIds.map(async (id) => {
-          const r = await db.rpc('job_plan_day', { p_job: id })
-          return [id, r.error ? null : (r.data as string | null)] as const
-        }),
-      ),
-    ])
+  const [
+    evidence,
+    results,
+    issues,
+    payments,
+    checkIns,
+    planResults,
+    planDays,
+    measures,
+    areaTimes,
+  ] = await Promise.all([
+    db
+      .from('evidence')
+      .select(
+        'id, job_id, area_id, kind, storage_path, within_geofence, taken_at, created_at, lat, lng',
+      )
+      .in('job_id', jobIds.length ? jobIds : none)
+      .order('created_at'),
+    db
+      .from('area_results')
+      .select(
+        'job_id, area_id, standard_id, done_by_operative, done_at, verdict, verdict_at',
+      )
+      .in('job_id', jobIds.length ? jobIds : none),
+    db
+      .from('issues')
+      .select(
+        'id, job_id, kind, description, status, resolution, created_at, resolved_at, sla_due_at, plan_label',
+      )
+      .in('job_id', jobIds.length ? jobIds : none)
+      .order('created_at'),
+    db
+      .from('payments')
+      .select(
+        'id, job_id, contract_id, kind, amount, currency, status, provider, provider_ref, due_at, paid_at, note, created_at',
+      )
+      .or(
+        `job_id.in.(${(jobIds.length ? jobIds : none).join(',')}),contract_id.in.(${(contractRows.length ? contractRows.map((c) => c.id) : none).join(',')})`,
+      )
+      .order('created_at'),
+    db
+      .from('job_events')
+      .select('job_id, kind, at, lat, lng, within_geofence')
+      .in('job_id', jobIds.length ? jobIds : none)
+      .eq('kind', 'check_in'),
+    db
+      .from('plan_results')
+      .select('job_id, plan_item_id, done, done_at, verdict, verdict_at')
+      .in('job_id', jobIds.length ? jobIds : none),
+    // The weekday of each visit when the work schedule decided the check (null: the brief's standards did).
+    Promise.all(
+      jobIds.map(async (id) => {
+        const r = await db.rpc('job_plan_day', { p_job: id })
+        return [id, r.error ? null : (r.data as string | null)] as const
+      }),
+    ),
+    // How each visit went against its plan, worked out in the database.
+    Promise.all(
+      jobIds.map(async (id) => {
+        const r = await db.rpc('visit_measures', { p_job: id })
+        return [id, r.error ? null : (r.data?.[0] ?? null)] as const
+      }),
+    ),
+    Promise.all(
+      jobIds.map(async (id) => {
+        const r = await db.rpc('visit_area_times', { p_job: id })
+        return [id, r.error ? [] : (r.data ?? [])] as const
+      }),
+    ),
+  ])
   return {
     brief,
     versions: must(versions),
@@ -146,6 +169,8 @@ async function loadCase(briefId: string) {
     schedules: must(schedules),
     planResults: must(planResults),
     planDays: Object.fromEntries(planDays) as Record<string, string | null>,
+    measures: Object.fromEntries(measures),
+    areaTimes: Object.fromEntries(areaTimes),
     evidence: must(evidence) as (EvidenceRow & {
       job_id: string
       taken_at: string | null
@@ -341,6 +366,8 @@ function JobRecord({
   )
   const plan = ws ? parsePlan(ws.plan) : null
   const planDay = data.planDays[job.id] ?? null
+  const measure = data.measures[job.id] ?? null
+  const areaTimes = data.areaTimes[job.id] ?? []
 
   return (
     <Section title={`Job: ${job.vendor?.name}, ${stamp(job.scheduled_start)}`}>
@@ -357,6 +384,64 @@ function JobRecord({
             }.`
           : 'No check-in has been recorded.'}
       </p>
+
+      {measure && (
+        <div className="card space-y-2 p-4 text-sm">
+          <p className="font-semibold">How the visit went against the plan</p>
+          <ul className="space-y-1">
+            <li>
+              Arrival:{' '}
+              {measure.on_time ? 'on time' : `${measure.late_minutes} min late`}{' '}
+              (tolerance {measure.tolerance_minutes} min)
+            </li>
+            <li>
+              Time on site:{' '}
+              {measure.on_site_minutes == null
+                ? 'not finished'
+                : minutesText(measure.on_site_minutes)}{' '}
+              against {minutesText(measure.planned_minutes)} planned
+              {measure.on_site_minutes != null && measure.planned_minutes > 0
+                ? ` (${timeAgainstPlan(measure.on_site_minutes / measure.planned_minutes).label.split(':')[0]})`
+                : ''}
+            </li>
+            <li>
+              {measure.uses_plan ? 'Cleaning areas' : 'Standards'} ticked:{' '}
+              {measure.ticked_areas} of {measure.planned_areas}
+            </li>
+            <li>
+              Complaints: {measure.complaints} ·{' '}
+              {measure.first_time_right
+                ? 'right first time'
+                : 'not right first time'}
+            </li>
+            <li>
+              Photos: {measure.photos_on_site} of {measure.photos} taken on site
+            </li>
+            {measure.hours_to_accept != null && (
+              <li>
+                Client accepted {measure.hours_to_accept} h after the cleaner
+                finished
+              </li>
+            )}
+          </ul>
+          {areaTimes.length > 0 && (
+            <div>
+              <p className="mt-2 font-medium">Time between ticks</p>
+              <ul className="space-y-0.5 text-xs text-ink-2">
+                {areaTimes.map((a) => (
+                  <li key={a.item_id}>
+                    {a.group_name} · {a.item_name} ({a.method},{' '}
+                    {a.planned_minutes} min planned):{' '}
+                    {a.minutes_since_previous == null
+                      ? 'not ticked'
+                      : `${a.minutes_since_previous} min since the previous tick`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {plan && planDay && (
         <>

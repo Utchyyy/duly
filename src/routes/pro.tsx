@@ -12,6 +12,7 @@ const nav = [
   { label: 'Today', to: '/pro', exact: true },
   { label: 'Quote requests', to: '/pro/quotes' },
   { label: 'Jobs and crew', to: '/pro/jobs' },
+  { label: 'Performance', to: '/pro/performance' },
   { label: 'Shifts', to: '/pro/shifts' },
   { label: 'Profile and rates', to: '/pro/profile' },
   { label: 'Verification', to: '/pro/verification' },

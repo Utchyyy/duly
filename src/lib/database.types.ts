@@ -1798,6 +1798,104 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      platform_operations: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          avg_late_minutes: number
+          complaints_per_100: number
+          first_time_right_rate: number
+          on_time_rate: number
+          open_issues: number
+          photos_on_site_rate: number
+          plan_followed_rate: number
+          sla_breaches: number
+          time_vs_plan: number
+          vendor_name: string
+          vendor_org_id: string
+          visits: number
+        }[]
+      }
+      vendor_operations: {
+        Args: { p_vendor: string; p_from: string; p_to: string }
+        Returns: {
+          avg_hours_to_resolve: number
+          avg_late_minutes: number
+          avg_on_site_minutes: number
+          avg_planned_minutes: number
+          complaints_per_100: number
+          first_time_right_rate: number
+          on_time_rate: number
+          open_issues: number
+          photos_on_site_rate: number
+          plan_followed_rate: number
+          sla_breaches: number
+          time_vs_plan: number
+          visits: number
+        }[]
+      }
+      vendor_problem_areas: {
+        Args: { p_vendor: string; p_from: string; p_to: string }
+        Returns: {
+          area: string
+          complaints: number
+          last_reported: string
+        }[]
+      }
+      vendor_visits: {
+        Args: { p_vendor: string; p_from: string; p_to: string }
+        Returns: {
+          complaints: number
+          first_time_right: boolean
+          job_id: string
+          late_minutes: number
+          on_site_minutes: number
+          on_time: boolean
+          planned_areas: number
+          planned_minutes: number
+          scheduled_start: string
+          site_name: string
+          status: string
+          ticked_areas: number
+        }[]
+      }
+      visit_area_times: {
+        Args: { p_job: string }
+        Returns: {
+          done_at: string
+          group_name: string
+          item_id: string
+          item_name: string
+          method: string
+          minutes_since_previous: number
+          planned_minutes: number
+          sequence_no: number
+        }[]
+      }
+      visit_measures: {
+        Args: { p_job: string }
+        Returns: {
+          accepted_at: string
+          checked_in_at: string
+          completed_at: string
+          complaints: number
+          first_time_right: boolean
+          hours_to_accept: number
+          job_id: string
+          late_minutes: number
+          on_site_minutes: number
+          on_time: boolean
+          photos: number
+          photos_on_site: number
+          planned_areas: number
+          planned_minutes: number
+          scheduled_start: string
+          status: string
+          tolerance_minutes: number
+          ticked_areas: number
+          uses_plan: boolean
+          vendor_org_id: string
+        }[]
+      }
       admin_case_timeline: {
         Args: { p_brief?: string; p_job?: string; p_limit?: number; p_org?: string }
         Returns: {
