@@ -7,7 +7,7 @@ export type CrewMember = { user_id: string; email: string; full_name: string | n
 export type Assigned = { user_id: string; role: string }
 
 /** Who is on a visit, with the means to add or remove a cleaner. Shared by Jobs and crew and by the Dispatch board. */
-export function AssignCrew({ jobId, assigned, members, onChange }: { jobId: string; assigned: Assigned[]; members: CrewMember[]; onChange: () => void }) {
+export function AssignCrew({ jobId, assigned, members, onChange, quietEmpty = false }: { jobId: string; assigned: Assigned[]; members: CrewMember[]; onChange: () => void; quietEmpty?: boolean }) {
   const [pick, setPick] = useState('')
   const [error, setError] = useState<string | null>(null)
   const name = (id: string) => {
@@ -38,12 +38,17 @@ export function AssignCrew({ jobId, assigned, members, onChange }: { jobId: stri
         {assigned.map((a) => (
           <span key={a.user_id} className="inline-flex items-center gap-2 rounded-full bg-tint px-3 py-1 text-sm text-primary">
             {name(a.user_id)} · {label(a.role)}
-            <button className="text-xs font-semibold text-alert" onClick={() => void unassign(a.user_id)} aria-label="Remove">
+            {/* A 44px hit area that does not make the chip taller. */}
+            <button
+              className="-my-3 -mr-2 inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-xs font-semibold text-alert"
+              onClick={() => void unassign(a.user_id)}
+              aria-label={`Remove ${name(a.user_id)}`}
+            >
               ✕
             </button>
           </span>
         ))}
-        {assigned.length === 0 && <span className="text-sm text-alert">No cleaner assigned yet</span>}
+        {assigned.length === 0 && !quietEmpty && <span className="text-sm text-alert">No cleaner assigned yet</span>}
       </div>
       <div className="flex flex-wrap gap-2">
         <select className="field w-auto min-w-[14rem]" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Cleaner">
