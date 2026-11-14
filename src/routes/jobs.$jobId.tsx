@@ -320,12 +320,12 @@ function Job() {
             plan={parsePlan(data.workSchedule.plan)}
             legend={parseLegend(data.workSchedule.legend)}
             highlight={data.planDay ?? dayOf(new Date(job.scheduled_start))}
-            onReport={['completed', 'quality_verified', 'paid', 'disputed', 'in_progress'].includes(job.status) ? (row, path) => setComplaintArea({ id: row.id, label: path }) : undefined}
+            onReport={!isRework && ['completed', 'quality_verified', 'paid', 'disputed', 'in_progress'].includes(job.status) ? (row, path) => setComplaintArea({ id: row.id, label: path }) : undefined}
           />
         </Section>
       )}
 
-      <Issues jobId={jobId} issues={data.issues} me={data.me} onChange={reload} area={complaintArea} onArea={setComplaintArea} reworks={data.reworks} />
+      <Issues jobId={jobId} issues={data.issues} me={data.me} onChange={reload} area={complaintArea} onArea={setComplaintArea} reworks={data.reworks} hideReport={isRework} />
 
       {data.payments.length > 0 && (
         <Section title="Money">

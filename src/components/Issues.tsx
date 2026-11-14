@@ -34,7 +34,7 @@ export type IssueArea = { id: string; label: string }
 
 export type ReworkVisit = { id: string; status: string; scheduled_start: string; rework_of_issue: string | null }
 
-export function Issues({ jobId, issues, me, onChange, area, onArea, reworks = [] }: { jobId: string; issues: IssueRow[]; me?: string; onChange: () => void; area?: IssueArea | null; onArea?: (a: IssueArea | null) => void; reworks?: ReworkVisit[] }) {
+export function Issues({ jobId, issues, me, onChange, area, onArea, reworks = [], hideReport = false }: { jobId: string; issues: IssueRow[]; me?: string; onChange: () => void; area?: IssueArea | null; onArea?: (a: IssueArea | null) => void; reworks?: ReworkVisit[]; hideReport?: boolean }) {
   const [kind, setKind] = useState<IssueKind>('quality')
   const [description, setDescription] = useState('')
   const [open, setOpen] = useState(false)
@@ -79,7 +79,8 @@ export function Issues({ jobId, issues, me, onChange, area, onArea, reworks = []
       id="problems"
       title="Problems"
       action={
-        !open && (
+        !open &&
+        !hideReport && (
           <button className="btn btn-ghost text-sm" onClick={() => setOpen(true)}>
             Report a problem
           </button>
@@ -112,8 +113,8 @@ export function Issues({ jobId, issues, me, onChange, area, onArea, reworks = []
           )}
         </div>
       ))}
-      {issues.length === 0 && !open && <p className="text-sm text-ink-2">No problems reported. Reporting one holds the payment until it’s sorted.</p>}
-      {open && (
+      {issues.length === 0 && !open && !hideReport && <p className="text-sm text-ink-2">No problems reported. Reporting one holds the payment until it’s sorted.</p>}
+      {open && !hideReport && (
         <form id="problem-form" onSubmit={submit} className="card space-y-3 p-4">
           {area && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-tint p-3 text-sm">
