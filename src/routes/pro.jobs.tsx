@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
+import { AssignCrew } from '#/components/AssignCrew'
 import { Empty } from '#/components/Shells'
 import { Badge, ErrorNote, Loading, Section } from '#/components/ui'
 import { label, money, must, useLoad, when } from '#/lib/format'
@@ -136,32 +137,6 @@ type JobRow = {
 }
 
 function JobCard({ job, members, onChange }: { job: JobRow; members: Member[]; onChange: () => void }) {
-  const [pick, setPick] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const name = (id: string) => {
-    const m = members.find((x) => x.user_id === id)
-    return m ? m.full_name || m.email : 'Unknown'
-  }
-  const assigned = new Set(job.job_assignments.map((a) => a.user_id))
-  const people = Array.from(new Map(members.map((m) => [m.user_id, m])).values()).filter((m) => !assigned.has(m.user_id))
-
-  async function assign() {
-    if (!pick) return
-    setError(null)
-    const { error: err } = await supabase()
-      .from('job_assignments')
-      .insert({ job_id: job.id, user_id: pick, role: job.job_assignments.length === 0 ? 'lead' : 'crew' })
-    if (err) setError(err.message)
-    setPick('')
-    onChange()
-  }
-
-  async function unassign(userId: string) {
-    const { error: err } = await supabase().from('job_assignments').delete().eq('job_id', job.id).eq('user_id', userId)
-    if (err) setError(err.message)
-    onChange()
-  }
-
   return (
     <div className="card space-y-3 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -182,31 +157,7 @@ function JobCard({ job, members, onChange }: { job: JobRow; members: Member[]; o
           </Link>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {job.job_assignments.map((a) => (
-          <span key={a.user_id} className="inline-flex items-center gap-2 rounded-full bg-tint px-3 py-1 text-sm text-primary">
-            {name(a.user_id)} · {label(a.role)}
-            <button className="text-xs font-semibold text-alert" onClick={() => void unassign(a.user_id)} aria-label="Remove">
-              ✕
-            </button>
-          </span>
-        ))}
-        {job.job_assignments.length === 0 && <span className="text-sm text-alert">No cleaner assigned yet</span>}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <select className="field w-auto min-w-[14rem]" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Cleaner">
-          <option value="">Choose a team member…</option>
-          {people.map((m) => (
-            <option key={m.user_id} value={m.user_id}>
-              {m.full_name || m.email} ({label(m.role)})
-            </option>
-          ))}
-        </select>
-        <button className="btn btn-ghost" disabled={!pick} onClick={() => void assign()}>
-          Assign
-        </button>
-      </div>
-      <ErrorNote message={error} />
+      <AssignCrew jobId={job.id} assigned={job.job_assignments} members={members} onChange={onChange} />
     </div>
   )
 }

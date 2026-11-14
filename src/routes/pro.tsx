@@ -11,6 +11,7 @@ export const Route = createFileRoute('/pro')({
 const nav = [
   { label: 'Today', to: '/pro', exact: true },
   { label: 'Quote requests', to: '/pro/quotes' },
+  { label: 'Dispatch', to: '/pro/dispatch' },
   { label: 'Jobs and crew', to: '/pro/jobs' },
   { label: 'Performance', to: '/pro/performance' },
   { label: 'Shifts', to: '/pro/shifts' },
