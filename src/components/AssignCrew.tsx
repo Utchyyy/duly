@@ -7,7 +7,28 @@ export type CrewMember = { user_id: string; email: string; full_name: string | n
 export type Assigned = { user_id: string; role: string }
 
 /** Who is on a visit, with the means to add or remove a cleaner. Shared by Jobs and crew and by the Dispatch board. */
-export function AssignCrew({ jobId, assigned, members, onChange, quietEmpty = false }: { jobId: string; assigned: Assigned[]; members: CrewMember[]; onChange: () => void; quietEmpty?: boolean }) {
+/**
+ * `quietEmpty` leaves out the "no cleaner" note (the caller already says it). `collapsible` shows only who is on the visit
+ * with a button to open the picker, which keeps a long list short; `startOpen` opens it at first, for a visit that needs a cleaner now.
+ */
+export function AssignCrew({
+  jobId,
+  assigned,
+  members,
+  onChange,
+  quietEmpty = false,
+  collapsible = false,
+  startOpen = false,
+}: {
+  jobId: string
+  assigned: Assigned[]
+  members: CrewMember[]
+  onChange: () => void
+  quietEmpty?: boolean
+  collapsible?: boolean
+  startOpen?: boolean
+}) {
+  const [open, setOpen] = useState(!collapsible || startOpen)
   const [pick, setPick] = useState('')
   const [error, setError] = useState<string | null>(null)
   const name = (id: string) => {
@@ -23,6 +44,7 @@ export function AssignCrew({ jobId, assigned, members, onChange, quietEmpty = fa
     const { error: err } = await supabase().from('job_assignments').insert({ job_id: jobId, user_id: pick, role: assigned.length === 0 ? 'lead' : 'crew' })
     if (err) setError(err.message)
     setPick('')
+    if (collapsible && !err) setOpen(false)
     onChange()
   }
 
@@ -50,19 +72,30 @@ export function AssignCrew({ jobId, assigned, members, onChange, quietEmpty = fa
         ))}
         {assigned.length === 0 && !quietEmpty && <span className="text-sm text-alert">No cleaner assigned yet</span>}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <select className="field w-auto min-w-[14rem]" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Cleaner">
-          <option value="">Choose a team member…</option>
-          {people.map((m) => (
-            <option key={m.user_id} value={m.user_id}>
-              {m.full_name || m.email} ({label(m.role)})
-            </option>
-          ))}
-        </select>
-        <button className="btn btn-ghost" disabled={!pick} onClick={() => void assign()}>
-          Assign
+      {open ? (
+        <div className="flex flex-wrap gap-2">
+          <select className="field w-auto min-w-[14rem]" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Cleaner">
+            <option value="">Choose a team member…</option>
+            {people.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                {m.full_name || m.email} ({label(m.role)})
+              </option>
+            ))}
+          </select>
+          <button className="btn btn-ghost" disabled={!pick} onClick={() => void assign()}>
+            Assign
+          </button>
+          {collapsible && (
+            <button className="btn btn-ghost" onClick={() => setOpen(false)}>
+              Done
+            </button>
+          )}
+        </div>
+      ) : (
+        <button className="btn btn-ghost text-sm" onClick={() => setOpen(true)}>
+          Add or change cleaner
         </button>
-      </div>
+      )}
       <ErrorNote message={error} />
     </div>
   )
