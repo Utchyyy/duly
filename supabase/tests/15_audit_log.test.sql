@@ -3,7 +3,7 @@ do $$
 declare
   f jsonb; v_job uuid; v_brief uuid; v_quote uuid; n bigint; t record; v_other uuid;
 begin
-  f := tests.book_job('sme');
+  f := tests.without_schedule(tests.book_job('sme'));
   v_job := (f ->> 'job')::uuid; v_brief := (f ->> 'brief')::uuid; v_quote := (f ->> 'quote')::uuid;
   perform tests.crew_completes(f);
   perform tests.buyer_approves(f);

@@ -79,6 +79,22 @@ function sunday0(): string {
   return workForDay(plan, 'sun')[0].rows.find((r) => r.row.name === 'Walls')!.row.id
 }
 
+test('a client standard is kept, listed on its days, and adds no minutes', () => {
+  const withStandard = parsePlan({
+    sections: [{ id: 's', name: 'Gym', subsections: [{ id: 'g', name: 'Showers', brief_area_id: 'a1', areas: [
+      { id: 'r1', name: 'Drains', days: { mon: 'scrub' } },
+      { id: 'std-1', name: 'Drains clear', days: { mon: 'clean' }, standard: true },
+    ] }] }],
+  })
+  assert.equal(withStandard.sections[0].subsections[0].areas[1].standard, true)
+  assert.equal(withStandard.sections[0].subsections[0].areas[0].standard, undefined)
+  const legend = parseLegend({ scrub: { minutes: 10 }, clean: { minutes: 7 } })
+  assert.equal(dayMinutes(withStandard, legend, 'mon'), 10, 'only the vendor\'s area counts')
+  assert.equal(weekMinutes(withStandard, legend), 10)
+  assert.deepEqual(workForDay(withStandard, 'mon')[0].rows.map((r) => r.row.name), ['Drains', 'Drains clear'], 'but it is on the day\'s checklist')
+  assert.deepEqual(workForDay(withStandard, 'mon', 'std-1')[0].rows.map((r) => r.row.name), ['Drains clear'])
+})
+
 test('weekday names follow the date, with Sunday first in JavaScript', () => {
   assert.equal(dayOf(new Date(2026, 10, 8)), 'sun') // Sun 8 Nov 2026
   assert.equal(dayOf(new Date(2026, 10, 9)), 'mon')

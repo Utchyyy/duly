@@ -108,25 +108,47 @@ begin
     'quote', quote, 'job', job, 'contract', contract);
 end $$;
 
--- Crew checks in on site, uploads an after photo per area, ticks every standard and completes.
+-- Crew checks in on site and does the whole checklist the job has: with a work schedule (the vendor's, or the one Duly builds from the
+-- brief) a tick for every planned cleaning area and an after photo for every part; with none, the brief's standards. Then completes.
 create function tests.crew_completes(f jsonb) returns void language plpgsql as $$
+declare
+  v_job uuid := (f ->> 'job')::uuid; v_items text[]; v_groups text[]; x text;
 begin
+  perform tests.as_su();
+  select coalesce(array_agg(item_id), '{}'), coalesce(array_agg(distinct group_id), '{}') into v_items, v_groups from private.job_planned_rows(v_job);
   perform tests.as_user((f ->> 'crew')::uuid);
-  perform public.check_in((f ->> 'job')::uuid, 51.8893, 0.9043);
-  insert into public.evidence (job_id, area_id, kind, storage_path, lat, lng) values
-    ((f ->> 'job')::uuid, 'a1', 'photo_after', (f ->> 'job') || '/a1/1.jpg', 51.8893, 0.9043),
-    ((f ->> 'job')::uuid, 'a2', 'photo_after', (f ->> 'job') || '/a2/1.jpg', 51.8893, 0.9043);
-  insert into public.area_results (job_id, area_id, standard_id, done_by_operative) values
-    ((f ->> 'job')::uuid, 'a1', 's1', true), ((f ->> 'job')::uuid, 'a1', 's2', true), ((f ->> 'job')::uuid, 'a2', 's3', true);
-  perform public.complete_job((f ->> 'job')::uuid, 51.8893, 0.9043);
+  perform public.check_in(v_job, 51.8893, 0.9043);
+  if cardinality(v_items) > 0 then
+    foreach x in array v_items loop insert into public.plan_results (job_id, plan_item_id, done) values (v_job, x, true); end loop;
+    foreach x in array v_groups loop
+      insert into public.evidence (job_id, area_id, kind, storage_path, lat, lng) values (v_job, x, 'photo_after', v_job || '/' || x || '/1.jpg', 51.8893, 0.9043);
+    end loop;
+  else
+    insert into public.evidence (job_id, area_id, kind, storage_path, lat, lng) values
+      (v_job, 'a1', 'photo_after', v_job || '/a1/1.jpg', 51.8893, 0.9043),
+      (v_job, 'a2', 'photo_after', v_job || '/a2/1.jpg', 51.8893, 0.9043);
+    insert into public.area_results (job_id, area_id, standard_id, done_by_operative) values
+      (v_job, 'a1', 's1', true), (v_job, 'a1', 's2', true), (v_job, 'a2', 's3', true);
+  end if;
+  perform public.complete_job(v_job, 51.8893, 0.9043);
   perform tests.as_su();
 end $$;
 
--- The client marks every standard met and approves.
+-- The client marks every cleaning area or standard met and approves.
 create function tests.buyer_approves(f jsonb) returns void language plpgsql as $$
 begin
   perform tests.as_user((f ->> 'buyer')::uuid);
+  update public.plan_results set verdict = 'met' where job_id = (f ->> 'job')::uuid;
   update public.area_results set verdict = 'met' where job_id = (f ->> 'job')::uuid;
   perform public.approve_job((f ->> 'job')::uuid);
   perform tests.as_su();
+end $$;
+
+-- Takes away the schedule Duly builds from the brief when a quote is accepted, leaving a job on the older standards check. For tests of
+-- that path, which still serves any job with no locked schedule.
+create function tests.without_schedule(f jsonb) returns jsonb language plpgsql as $$
+begin
+  perform tests.as_su();
+  delete from public.work_schedules where quote_id = (f ->> 'quote')::uuid;
+  return f;
 end $$;

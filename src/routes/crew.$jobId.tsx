@@ -26,7 +26,7 @@ function JobSheet() {
         .eq('id', jobId)
         .single(),
     )
-    const [version, evidence, results, events, workSchedule, planDay, planResults, booked] = await Promise.all([
+    const [version, evidence, results, events, workSchedule, planDay, planResults, booked, checkMode] = await Promise.all([
       db.from('brief_versions').select('schedule, notes').eq('brief_id', job.brief_id).eq('version', job.brief_version).single(),
       db.from('evidence').select('id, area_id, kind, storage_path, within_geofence, created_at').eq('job_id', jobId).order('created_at'),
       db.from('area_results').select('area_id, standard_id, done_by_operative, verdict').eq('job_id', jobId),
@@ -39,6 +39,8 @@ function JobSheet() {
       job.rework_of_issue
         ? db.from('job_events').select('data').eq('job_id', jobId).eq('kind', 'status_change').order('at').limit(1)
         : Promise.resolve({ data: null, error: null }),
+      // 'plan': tick the schedule's areas; 'photos': the schedule plans nothing today, so photos only; 'standards': an older job with no schedule.
+      db.rpc('job_check_mode', { p_job: jobId }),
     ])
     const bookedData = (booked.data?.[0]?.data ?? null) as { area?: string; item?: string } | null
     return {
@@ -52,6 +54,7 @@ function JobSheet() {
       plan: workSchedule.error || !workSchedule.data ? null : parsePlan(workSchedule.data.plan),
       planDay: planDay.error ? null : ((planDay.data as string | null) as Day | null),
       planResults: planResults.error ? [] : (planResults.data ?? []),
+      mode: checkMode.error ? null : (checkMode.data as 'plan' | 'photos' | 'standards' | null),
       rework: job.rework_of_issue ? { area: bookedData?.area ?? null, item: bookedData?.item ?? null } : null,
     }
   }, [jobId])
@@ -125,9 +128,13 @@ function JobSheet() {
   const groups = data.plan && data.planDay ? workForDay(data.plan, data.planDay, data.rework?.item) : null
   const rowDone = (id: string) => data.planResults.some((r) => r.plan_item_id === id && r.done)
   const hasAfter = (areaId: string) => data.evidence.some((e) => e.area_id === areaId && e.kind === 'photo_after')
-  const areas = groups
-    ? groups.map((g) => ({ section: g.section, area: { id: g.sub.id, name: g.sub.name, minutes: 0, standards: [] as { id: string; text: string }[] } }))
-    : data.schedule.flatMap((s) => s.areas.map((a) => ({ section: s.name, area: a })))
+  // A schedule that plans nothing today has no areas: the crew take at least one after photo of the work.
+  const photosMode = data.mode === 'photos'
+  const areas = photosMode
+    ? [{ section: 'Photos of the work', area: { id: 'visit', name: 'The visit', minutes: 0, standards: [] as { id: string; text: string }[] } }]
+    : groups
+      ? groups.map((g) => ({ section: g.section, area: { id: g.sub.id, name: g.sub.name, minutes: 0, standards: [] as { id: string; text: string }[] } }))
+      : data.schedule.flatMap((s) => s.areas.map((a) => ({ section: s.name, area: a })))
   const doneAreas = groups
     ? groups.filter((g) => g.rows.every((r) => rowDone(r.row.id)) && hasAfter(g.sub.id)).length
     : areas.filter(({ area }) => area.standards.every((st) => ticked(area.id, st.id)) && hasAfter(area.id)).length
@@ -182,8 +189,8 @@ function JobSheet() {
         </button>
       )}
 
-      {data.plan && !groups && (
-        <p className="card p-3 text-sm text-ink-2">The work schedule has no cleaning areas planned for this day, so work from the checklist below.</p>
+      {photosMode && (
+        <p className="card p-3 text-sm text-ink-2">The work schedule plans nothing for this day, so there is no checklist. Do the work, take at least one after photo, then finish.</p>
       )}
 
       {(working || !beforeStart) && groups && data.planDay && (
@@ -215,7 +222,7 @@ function JobSheet() {
         <>
           {working && (
             <p className="text-sm text-ink-2">
-              For each area: tick every standard and take an after photo. {doneAreas} of {areas.length} areas done.
+              {photosMode ? 'Take at least one after photo of the work.' : `For each area: tick every standard and take an after photo. ${doneAreas} of ${areas.length} areas done.`}
             </p>
           )}
           {areas.map(({ section, area }) => (
@@ -238,7 +245,7 @@ function JobSheet() {
         <div className="fixed inset-x-0 bottom-0 border-t border-line bg-ground/95 p-3 backdrop-blur">
           <div className="mx-auto max-w-xl">
             <button className="btn btn-primary w-full" disabled={busy || doneAreas < areas.length} onClick={() => void complete()}>
-              {doneAreas < areas.length ? `${areas.length - doneAreas} ${groups ? 'part(s)' : 'area(s)'} to finish` : 'Finish and send to client'}
+              {doneAreas < areas.length ? (photosMode ? 'Take an after photo to finish' : `${areas.length - doneAreas} ${groups ? 'part(s)' : 'area(s)'} to finish`) : 'Finish and send to client'}
             </button>
           </div>
         </div>
@@ -353,7 +360,8 @@ function AreaCard({
       <div className="flex items-baseline justify-between gap-2">
         <p className="font-semibold">{area.name}</p>
         <p className="text-xs text-ink-2">
-          {section} · {area.minutes} min
+          {section}
+          {area.minutes > 0 ? ` · ${area.minutes} min` : ''}
         </p>
       </div>
       <ul className="space-y-1">
@@ -406,7 +414,7 @@ function GroupCard({
   section: string
   groupId: string
   name: string
-  rows: { row: { id: string; name: string }; method: keyof typeof METHOD_LABEL }[]
+  rows: { row: { id: string; name: string; standard?: boolean }; method: keyof typeof METHOD_LABEL }[]
   editable: boolean
   done: (id: string) => boolean
   evidence: EvidenceRow[]
@@ -441,7 +449,7 @@ function GroupCard({
             <label className={`flex min-h-[44px] flex-1 items-center gap-3 ${editable ? 'cursor-pointer' : ''}`}>
               <input type="checkbox" className="size-5 shrink-0 accent-[var(--color-primary)]" checked={done(row.id)} disabled={!editable} onChange={() => void toggle(row.id)} />
               <span className="text-sm">{row.name}</span>
-              <span className="shrink-0 rounded-full bg-tint px-2 py-0.5 text-xs font-semibold text-primary">{METHOD_LABEL[method]}</span>
+              <span className="shrink-0 rounded-full bg-tint px-2 py-0.5 text-xs font-semibold text-primary">{row.standard ? 'Client standard' : METHOD_LABEL[method]}</span>
             </label>
             {editable && (
               <button

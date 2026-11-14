@@ -43,11 +43,11 @@ begin
   perform tests.eq((select vendor_org_id from public.work_schedules where id = ws), vend, 'and its vendor comes from the quote');
 
   -- Who can see a draft.
-  perform tests.as_user(vendor_u); select count(*) into n from public.work_schedules; perform tests.eq(n, 1::bigint, 'the vendor sees its draft');
-  perform tests.as_user(buyer_u); select count(*) into n from public.work_schedules; perform tests.eq(n, 0::bigint, 'the client does not see a draft');
-  perform tests.as_user(other_v); select count(*) into n from public.work_schedules; perform tests.eq(n, 0::bigint, 'another vendor does not see it');
-  perform tests.as_user(crew_u); select count(*) into n from public.work_schedules; perform tests.eq(n, 0::bigint, 'crew do not see a draft');
-  perform tests.as_user(admin_u); select count(*) into n from public.work_schedules; perform tests.eq(n, 1::bigint, 'Duly sees it');
+  perform tests.as_user(vendor_u); select count(*) into n from public.work_schedules where id = ws; perform tests.eq(n, 1::bigint, 'the vendor sees its draft');
+  perform tests.as_user(buyer_u); select count(*) into n from public.work_schedules where id = ws; perform tests.eq(n, 0::bigint, 'the client does not see a draft');
+  perform tests.as_user(other_v); select count(*) into n from public.work_schedules where id = ws; perform tests.eq(n, 0::bigint, 'another vendor does not see it');
+  perform tests.as_user(crew_u); select count(*) into n from public.work_schedules where id = ws; perform tests.eq(n, 0::bigint, 'crew do not see a draft');
+  perform tests.as_user(admin_u); select count(*) into n from public.work_schedules where id = ws; perform tests.eq(n, 1::bigint, 'Duly sees it');
 
   -- Who can start one.
   perform tests.as_user(other_v);
@@ -114,7 +114,7 @@ begin
   perform tests.eq((select plan_item_id from public.issues where job_id = job), 's1-1-1', 'and the area id');
   perform tests.as_user(buyer_u);
   perform tests.throws(format('insert into public.issues (job_id, kind, description, plan_item_id) values (%L, %L, %L, %L)', job, 'quality', 'x', 'not-an-area'), '%not in the work schedule%', 'a complaint cannot name an area that is not in the schedule');
-  r := tests.book_job('sme');
+  r := tests.without_schedule(tests.book_job('sme'));
   perform tests.as_user((r ->> 'buyer')::uuid);
   perform tests.throws(format('insert into public.issues (job_id, kind, description, plan_item_id) values (%L, %L, %L, %L)', r ->> 'job', 'quality', 'x', 's1-1-1'), '%no work schedule%', 'nor on a job that has no schedule');
   insert into public.issues (job_id, kind, description) values ((r ->> 'job')::uuid, 'quality', 'ordinary complaint');

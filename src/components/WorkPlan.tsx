@@ -89,7 +89,7 @@ function SubRows({ section, sub, highlight, onReport }: { section: Section; sub:
           {sub.name}
         </td>
       </tr>
-      {sub.areas.map((row) => (
+      {sub.areas.filter((row) => !row.standard).map((row) => (
         <tr key={row.id} className="border-b border-line last:border-0">
           <td className="p-3">{row.name}</td>
           {DAYS.map((d) => (
@@ -106,6 +106,13 @@ function SubRows({ section, sub, highlight, onReport }: { section: Section; sub:
           )}
         </tr>
       ))}
+      {sub.areas.some((row) => row.standard) && (
+        <tr className="border-b border-line last:border-0">
+          <td colSpan={DAYS.length + 1 + (onReport ? 1 : 0)} className="px-3 py-2 text-xs text-ink-2">
+            Client standards also checked here: {sub.areas.filter((row) => row.standard).map((row) => row.name).join(' · ')}
+          </td>
+        </tr>
+      )}
     </>
   )
 }
@@ -248,7 +255,7 @@ function EditorSub({
                 value={sub.brief_area_id ?? ''}
                 onChange={(e) => onChange((s) => void (s.brief_area_id = e.target.value || null))}
               >
-                <option value="">Brief area (photos and ticks)…</option>
+                <option value="">Brief area (its standards are checked too)…</option>
                 {briefAreas.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}

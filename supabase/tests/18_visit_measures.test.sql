@@ -148,7 +148,7 @@ begin
   perform tests.eq((select complaints from public.visit_measures(job_b)), 1, 'a complaint is counted, and a safeguarding report is not');
   perform tests.ok(not (select first_time_right from public.visit_measures(job_b)), 'a visit with a complaint was not right first time');
 
-  l := tests.book_job('sme');
+  l := tests.without_schedule(tests.book_job('sme'));
   perform tests.crew_completes(l);
   perform tests.as_su();
   -- Count only these three visits: give them to a vendor with no other history.

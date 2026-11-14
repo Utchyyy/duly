@@ -11,7 +11,8 @@ export const METHOD_LABEL: Record<Method, string> = { scrub: 'Scrub', wash: 'Was
 export const DAY_LABEL: Record<Day, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' }
 export const DAY_FULL: Record<Day, string> = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' }
 
-export type Row = { id: string; name: string; days: Partial<Record<Day, Method>> }
+/** `standard` marks one of the client's own brief standards written into a locked schedule: it is checked like any area but adds no minutes. */
+export type Row = { id: string; name: string; days: Partial<Record<Day, Method>>; standard?: boolean }
 export type SubSection = { id: string; name: string; brief_area_id: string | null; areas: Row[] }
 export type Section = { id: string; name: string; subsections: SubSection[] }
 export type Plan = { sections: Section[] }
@@ -58,7 +59,7 @@ export function parsePlan(json: unknown): Plan {
               const area = obj(a)
               const days: Partial<Record<Day, Method>> = {}
               for (const [k, v] of Object.entries(obj(area.days))) if (isDay(k) && isMethod(v)) days[k] = v
-              return { id: String(area.id ?? newId()), name: String(area.name ?? 'Cleaning area'), days }
+              return { id: String(area.id ?? newId()), name: String(area.name ?? 'Cleaning area'), days, ...(area.standard === true ? { standard: true } : {}) }
             }),
           }
         }),
@@ -77,11 +78,11 @@ export function rowPath(plan: Plan, rowId: string): string | null {
   return hit ? [hit.section.name, hit.sub.name, hit.row.name].join(' > ') : null
 }
 
-/** Minutes of work planned on one weekday: the vendor's minutes for the method set on each cleaning area. */
+/** Minutes of work planned on one weekday: the vendor's minutes for the method set on each cleaning area (a client standard adds none). */
 export function dayMinutes(plan: Plan, legend: Legend, day: Day): number {
   return allRows(plan).reduce((sum, { row }) => {
     const m = row.days[day]
-    return sum + (m ? (legend[m].minutes ?? 0) : 0)
+    return sum + (m && !row.standard ? (legend[m].minutes ?? 0) : 0)
   }, 0)
 }
 
