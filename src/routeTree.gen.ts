@@ -18,6 +18,7 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminIssuesRouteImport } from './routes/admin.issues'
+import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPeopleRouteImport } from './routes/admin.people'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
@@ -32,6 +33,7 @@ import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 import { Route as ProIndexRouteImport } from './routes/pro.index'
 import { Route as ProJobsRouteImport } from './routes/pro.jobs'
 import { Route as ProPayoutsRouteImport } from './routes/pro.payouts'
+import { Route as ProPerformanceRouteImport } from './routes/pro.performance'
 import { Route as ProProfileRouteImport } from './routes/pro.profile'
 import { Route as ProQuotesRouteImport } from './routes/pro.quotes'
 import { Route as ProShiftsRouteImport } from './routes/pro.shifts'
@@ -86,6 +88,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const AdminIssuesRoute = AdminIssuesRouteImport.update({
   id: '/issues',
   path: '/issues',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOperationsRoute = AdminOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
@@ -158,6 +165,11 @@ const ProPayoutsRoute = ProPayoutsRouteImport.update({
   path: '/payouts',
   getParentRoute: () => ProRoute,
 } as any)
+const ProPerformanceRoute = ProPerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
+  getParentRoute: () => ProRoute,
+} as any)
 const ProProfileRoute = ProProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -218,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/pro': typeof ProRouteWithChildren
   '/admin/issues': typeof AdminIssuesRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
@@ -230,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
+  '/pro/performance': typeof ProPerformanceRoute
   '/pro/profile': typeof ProProfileRoute
   '/pro/quotes': typeof ProQuotesRoute
   '/pro/shifts': typeof ProShiftsRoute
@@ -250,6 +264,7 @@ export interface FileRoutesByTo {
   '/business': typeof BusinessRoute
   '/notifications': typeof NotificationsRoute
   '/admin/issues': typeof AdminIssuesRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
@@ -262,6 +277,7 @@ export interface FileRoutesByTo {
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
+  '/pro/performance': typeof ProPerformanceRoute
   '/pro/profile': typeof ProProfileRoute
   '/pro/quotes': typeof ProQuotesRoute
   '/pro/shifts': typeof ProShiftsRoute
@@ -286,6 +302,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/pro': typeof ProRouteWithChildren
   '/admin/issues': typeof AdminIssuesRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
@@ -298,6 +315,7 @@ export interface FileRoutesById {
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/jobs': typeof ProJobsRoute
   '/pro/payouts': typeof ProPayoutsRoute
+  '/pro/performance': typeof ProPerformanceRoute
   '/pro/profile': typeof ProProfileRoute
   '/pro/quotes': typeof ProQuotesRoute
   '/pro/shifts': typeof ProShiftsRoute
@@ -323,6 +341,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/pro'
     | '/admin/issues'
+    | '/admin/operations'
     | '/admin/payments'
     | '/admin/people'
     | '/admin/policies'
@@ -335,6 +354,7 @@ export interface FileRouteTypes {
     | '/jobs/$jobId'
     | '/pro/jobs'
     | '/pro/payouts'
+    | '/pro/performance'
     | '/pro/profile'
     | '/pro/quotes'
     | '/pro/shifts'
@@ -355,6 +375,7 @@ export interface FileRouteTypes {
     | '/business'
     | '/notifications'
     | '/admin/issues'
+    | '/admin/operations'
     | '/admin/payments'
     | '/admin/people'
     | '/admin/policies'
@@ -367,6 +388,7 @@ export interface FileRouteTypes {
     | '/jobs/$jobId'
     | '/pro/jobs'
     | '/pro/payouts'
+    | '/pro/performance'
     | '/pro/profile'
     | '/pro/quotes'
     | '/pro/shifts'
@@ -390,6 +412,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/pro'
     | '/admin/issues'
+    | '/admin/operations'
     | '/admin/payments'
     | '/admin/people'
     | '/admin/policies'
@@ -402,6 +425,7 @@ export interface FileRouteTypes {
     | '/jobs/$jobId'
     | '/pro/jobs'
     | '/pro/payouts'
+    | '/pro/performance'
     | '/pro/profile'
     | '/pro/quotes'
     | '/pro/shifts'
@@ -496,6 +520,13 @@ declare module '@tanstack/react-router' {
       path: '/issues'
       fullPath: '/admin/issues'
       preLoaderRoute: typeof AdminIssuesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/operations': {
+      id: '/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AdminOperationsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/payments': {
@@ -596,6 +627,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProPayoutsRouteImport
       parentRoute: typeof ProRoute
     }
+    '/pro/performance': {
+      id: '/pro/performance'
+      path: '/performance'
+      fullPath: '/pro/performance'
+      preLoaderRoute: typeof ProPerformanceRouteImport
+      parentRoute: typeof ProRoute
+    }
     '/pro/profile': {
       id: '/pro/profile'
       path: '/profile'
@@ -671,6 +709,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminIssuesRoute: typeof AdminIssuesRoute
+  AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPeopleRoute: typeof AdminPeopleRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
@@ -683,6 +722,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminIssuesRoute: AdminIssuesRoute,
+  AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPeopleRoute: AdminPeopleRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
@@ -710,6 +750,7 @@ const CrewRouteWithChildren = CrewRoute._addFileChildren(CrewRouteChildren)
 interface ProRouteChildren {
   ProJobsRoute: typeof ProJobsRoute
   ProPayoutsRoute: typeof ProPayoutsRoute
+  ProPerformanceRoute: typeof ProPerformanceRoute
   ProProfileRoute: typeof ProProfileRoute
   ProQuotesRoute: typeof ProQuotesRoute
   ProShiftsRoute: typeof ProShiftsRoute
@@ -722,6 +763,7 @@ interface ProRouteChildren {
 const ProRouteChildren: ProRouteChildren = {
   ProJobsRoute: ProJobsRoute,
   ProPayoutsRoute: ProPayoutsRoute,
+  ProPerformanceRoute: ProPerformanceRoute,
   ProProfileRoute: ProProfileRoute,
   ProQuotesRoute: ProQuotesRoute,
   ProShiftsRoute: ProShiftsRoute,

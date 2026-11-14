@@ -11,6 +11,7 @@ const nav = [
   { label: 'Overview', to: '/admin', exact: true },
   { label: 'Verification', to: '/admin/verification' },
   { label: 'Case files', to: '/admin/cases' },
+  { label: 'Operations', to: '/admin/operations' },
   { label: 'Issues', to: '/admin/issues' },
   { label: 'Payments ledger', to: '/admin/payments' },
   { label: 'Workers and DBS', to: '/admin/workers' },
