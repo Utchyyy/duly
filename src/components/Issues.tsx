@@ -1,7 +1,8 @@
+import { Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Database } from '#/lib/database.types'
-import { label } from '#/lib/format'
+import { label, when } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
 import { Badge, ErrorNote, Field, Section } from './ui'
 
@@ -31,7 +32,9 @@ type IssueRow = {
 /** A cleaning area from the work schedule that a problem is about. */
 export type IssueArea = { id: string; label: string }
 
-export function Issues({ jobId, issues, me, onChange, area, onArea }: { jobId: string; issues: IssueRow[]; me?: string; onChange: () => void; area?: IssueArea | null; onArea?: (a: IssueArea | null) => void }) {
+export type ReworkVisit = { id: string; status: string; scheduled_start: string; rework_of_issue: string | null }
+
+export function Issues({ jobId, issues, me, onChange, area, onArea, reworks = [] }: { jobId: string; issues: IssueRow[]; me?: string; onChange: () => void; area?: IssueArea | null; onArea?: (a: IssueArea | null) => void; reworks?: ReworkVisit[] }) {
   const [kind, setKind] = useState<IssueKind>('quality')
   const [description, setDescription] = useState('')
   const [open, setOpen] = useState(false)
@@ -92,6 +95,16 @@ export function Issues({ jobId, issues, me, onChange, area, onArea }: { jobId: s
           {i.plan_label && <p className="text-xs font-medium text-ink-2">About: {i.plan_label}</p>}
           <p>{i.description}</p>
           {i.resolution && <p className="text-ink-2">Outcome: {i.resolution}</p>}
+          {reworks
+            .filter((r) => r.rework_of_issue === i.id)
+            .map((r) => (
+              <p key={r.id} className="rounded-lg bg-tint p-2">
+                A rework visit {r.status === 'disputed' ? 'was not accepted' : 'is booked'} for {when(r.scheduled_start)} ·{' '}
+                <Link to="/jobs/$jobId" params={{ jobId: r.id }} className="link-action font-semibold text-primary">
+                  Open it
+                </Link>
+              </p>
+            ))}
           {i.status !== 'resolved' && i.raised_by === me && (
             <button className="btn btn-ghost mt-2 text-xs" onClick={() => void resolve(i.id)}>
               It’s sorted: mark resolved

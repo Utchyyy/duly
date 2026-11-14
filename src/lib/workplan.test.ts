@@ -67,6 +67,18 @@ test("one day's work lists only the areas planned that day", () => {
   assert.deepEqual(workForDay(plan, 'mon'), [])
 })
 
+test('a rework visit keeps only the one area it is for', () => {
+  const only = workForDay(plan, 'sun', sunday0())
+  assert.equal(only.length, 1)
+  assert.deepEqual(only[0].rows.map((r) => r.row.name), ['Walls'])
+  assert.deepEqual(workForDay(plan, 'sun', 'nope'), [])
+  assert.deepEqual(workForDay(plan, 'mon', sunday0()), [])
+})
+
+function sunday0(): string {
+  return workForDay(plan, 'sun')[0].rows.find((r) => r.row.name === 'Walls')!.row.id
+}
+
 test('weekday names follow the date, with Sunday first in JavaScript', () => {
   assert.equal(dayOf(new Date(2026, 10, 8)), 'sun') // Sun 8 Nov 2026
   assert.equal(dayOf(new Date(2026, 10, 9)), 'mon')

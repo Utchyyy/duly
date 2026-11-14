@@ -108,12 +108,12 @@ export function problemsBeforeSending(plan: Plan, legend: Legend): string[] {
   return out
 }
 
-/** The cleaning areas planned on a weekday, grouped as they appear in the schedule. */
-export function workForDay(plan: Plan, day: Day): { section: string; sub: SubSection; rows: { row: Row; method: Method }[] }[] {
+/** The cleaning areas planned on a weekday, grouped as they appear in the schedule. `only` keeps one area (a rework visit is for one). */
+export function workForDay(plan: Plan, day: Day, only?: string | null): { section: string; sub: SubSection; rows: { row: Row; method: Method }[] }[] {
   const out: { section: string; sub: SubSection; rows: { row: Row; method: Method }[] }[] = []
   for (const section of plan.sections) {
     for (const sub of section.subsections) {
-      const rows = sub.areas.flatMap((row) => (row.days[day] ? [{ row, method: row.days[day] as Method }] : []))
+      const rows = sub.areas.flatMap((row) => (row.days[day] && (!only || row.id === only) ? [{ row, method: row.days[day] as Method }] : []))
       if (rows.length > 0) out.push({ section: section.name, sub, rows })
     }
   }

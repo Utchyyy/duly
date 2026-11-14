@@ -26,13 +26,14 @@ function ProPerformance() {
   const { data, error } = useLoad(async () => {
     const db = supabase()
     const { from, to } = rangeDates(Number(range))
-    const [summary, visits, areas, score] = await Promise.all([
+    const [summary, visits, areas, score, rework] = await Promise.all([
       db.rpc('vendor_operations', { p_vendor: vendor.id, p_from: from, p_to: to }),
       db.rpc('vendor_visits', { p_vendor: vendor.id, p_from: from, p_to: to }),
       db.rpc('vendor_problem_areas', { p_vendor: vendor.id, p_from: from, p_to: to }),
       db.from('vendor_scores').select('quality_score, jobs_completed').eq('org_id', vendor.id).maybeSingle(),
+      db.rpc('vendor_rework', { p_vendor: vendor.id, p_from: from, p_to: to }),
     ])
-    return { summary: must(summary)[0], visits: must(visits), areas: must(areas), score: score.error ? (() => { throw new Error(score.error.message) })() : score.data }
+    return { summary: must(summary)[0], visits: must(visits), areas: must(areas), rework: must(rework)[0], score: score.error ? (() => { throw new Error(score.error.message) })() : score.data }
   }, [vendor.id, range])
 
   if (error) return <ErrorNote message={error} />
@@ -83,6 +84,25 @@ function ProPerformance() {
               watch={Boolean(s.sla_breaches)}
             />
           </div>
+
+          {data.rework && data.rework.complaints > 0 && (
+            <Section title="Putting problems right">
+              <p className="text-sm text-ink-2">
+                A complaint on a cleaning area is put right on a rework visit. The client accepts the area once it is done, and rework visits are not counted in the rates above.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Tile label="Complaints" value={String(data.rework.complaints)} note="Not counting safeguarding reports, which only Duly sees" />
+                <Tile label="Rework visits booked" value={String(data.rework.reworks_booked)} note={`${data.rework.reworks_accepted} accepted · ${data.rework.reworks_open} on the way · ${data.rework.reworks_rejected} not accepted`} watch={data.rework.reworks_rejected > 0} />
+                <Tile
+                  label="Waiting for a rework visit"
+                  value={String(data.rework.awaiting_rework)}
+                  note={data.rework.awaiting_rework > 0 ? 'Book these under Jobs and crew' : 'Nothing waiting'}
+                  watch={data.rework.awaiting_rework > 0}
+                />
+                <Tile label="Time to put right" value={data.rework.avg_hours_to_put_right == null ? '–' : `${data.rework.avg_hours_to_put_right} h`} note="From the complaint to the client accepting the rework" />
+              </div>
+            </Section>
+          )}
 
           {data.areas.length > 0 && (
             <Section title="Where complaints land">
