@@ -2253,6 +2253,7 @@ export type Database = {
           duly_status: string | null
           reviewed_at: string | null
           note: string | null
+          evidence_path: string | null
         }[]
       }
       enterprise_set_vendor_status: { Args: { p_enterprise: string; p_vendor: string; p_status: string }; Returns: undefined }

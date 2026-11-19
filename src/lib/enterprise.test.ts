@@ -33,7 +33,7 @@ test('compliance rows are grouped by vendor in the order given, with what needs 
   const { groupByVendor, claimsToReview } = await import('./compliance.ts')
   const row = (vendor: string, kind: string, state: string) => ({
     vendor_org_id: vendor, vendor_name: vendor.toUpperCase(), roster_status: 'active', kind, state,
-    claim_id: null, reference: null, valid_until: null, duly_status: null, reviewed_at: null, note: null,
+    claim_id: null, reference: null, valid_until: null, duly_status: null, reviewed_at: null, note: null, evidence_path: null,
   })
   const rows = [row('b', 'iso_9001', 'accepted'), row('b', 'chas', 'awaiting'), row('a', 'iso_9001', 'accepted'), row('a', 'chas', 'accepted'), row('c', 'chas', 'not_sent'), row('c', 'iso_9001', 'expired')]
   const g = groupByVendor(rows)
@@ -103,4 +103,29 @@ test('the SLA CSV quotes cells and defuses anything a spreadsheet would run as a
   assert.match(ex.split('\r\n')[1], /,V,S,2026-09-03T10:00:00Z,matched,Yes,,1,1,Yes,no_show$/)
   assert.equal(packFileName('pack', 'Soft FM One!', '2026-09-01'), 'duly-sla-pack-soft-fm-one-2026-09.csv')
   assert.equal(packFileName('visits', '???', '2026-09-01'), 'duly-sla-visits-enterprise-2026-09.csv')
+})
+
+test('a claim document is checked, named and stored safely', async () => {
+  const { checkClaimFile, safeFileName, claimFilePath, claimFileLabel, claimFileType, CLAIM_FILE_MAX_BYTES } = await import('./claimEvidence.ts')
+  assert.equal(checkClaimFile({ name: 'cert.pdf', size: 1000, type: 'application/pdf' }), null)
+  assert.equal(checkClaimFile({ name: 'scan.JPG', size: 1000, type: 'image/jpeg' }), null)
+  assert.equal(checkClaimFile({ name: 'photo.heic', size: 1000, type: '' }), null, 'a browser that gives no type for .heic is judged by the extension')
+  assert.match(checkClaimFile({ name: 'a.pdf', size: 0, type: 'application/pdf' }) ?? '', /empty/)
+  assert.match(checkClaimFile({ name: 'a.pdf', size: CLAIM_FILE_MAX_BYTES + 1, type: 'application/pdf' }) ?? '', /10 MB/)
+  assert.match(checkClaimFile({ name: 'a.svg', size: 10, type: 'image/svg+xml' }) ?? '', /PDF or a photo/)
+  assert.match(checkClaimFile({ name: 'a.html', size: 10, type: 'text/html' }) ?? '', /PDF or a photo/)
+  assert.match(checkClaimFile({ name: 'noext', size: 10, type: '' }) ?? '', /PDF or a photo/)
+  assert.equal(claimFileType({ name: 'x.PNG', type: '' }), 'image/png')
+  assert.equal(safeFileName('Public Liability (2026).PDF'), 'public-liability-2026.pdf')
+  assert.equal(safeFileName('../../etc/passwd'), 'passwd', 'folders are dropped')
+  assert.equal(safeFileName('C:\\Users\\me\\cert.pdf'), 'cert.pdf')
+  assert.equal(safeFileName('=cmd|calc.pdf'), 'cmd-calc.pdf')
+  assert.equal(safeFileName('.pdf'), 'pdf', 'a dotfile name is not an extension')
+  assert.equal(safeFileName('###.png'), 'document.png')
+  assert.ok(safeFileName('a'.repeat(200) + '.pdf').length <= 65)
+  const p = claimFilePath('org-1', 'claim-1', 'My Cert.pdf', 1700000000000)
+  assert.equal(p, 'org-1/claim-1/1700000000000-my-cert.pdf')
+  assert.equal(p.split('/').length, 3, 'always three parts: vendor, claim, file')
+  assert.equal(claimFileLabel(p), 'my-cert.pdf')
+  assert.equal(claimFileLabel(null), '')
 })

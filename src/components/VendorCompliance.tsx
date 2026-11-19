@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ClaimDocument } from '#/components/ClaimDocument'
 import { Badge, ErrorNote, Section } from '#/components/ui'
 import { groupByVendor, KIND_TEXT, REQUIRABLE_KINDS, STATE_TEXT } from '#/lib/compliance'
 import type { ComplianceRow } from '#/lib/compliance'
@@ -109,6 +110,7 @@ export function VendorCompliance({ enterpriseId, canManage, required, rows, onCh
                           {r.valid_until ? `Valid until ${day(r.valid_until)}` : r.claim_id ? 'No expiry date given' : 'The vendor has not sent this'}
                           {r.reviewed_at ? ` · reviewed ${day(r.reviewed_at)}` : ''}
                         </p>
+                        {r.evidence_path && <ClaimDocument path={r.evidence_path} className="mt-1" />}
                         {r.note && <p className="text-ink-2">{r.state === 'rejected' ? 'Reason: ' : 'Note: '}{r.note}</p>}
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
