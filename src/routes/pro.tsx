@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { Gate } from '#/components/Gate'
 import { ConsoleShell, Empty } from '#/components/Shells'
+import { useFeatures } from '#/lib/useFeatures'
 import { useVendor } from '#/lib/vendor'
 
 export const Route = createFileRoute('/pro')({
@@ -22,8 +23,11 @@ const nav = [
 ]
 
 function ProLayout() {
+  const { features } = useFeatures()
+  // The shift exchange is hidden while that switch is off: vendors use their own staff.
+  const visible = nav.filter((n) => features.shifts || n.to !== '/pro/shifts')
   return (
-    <ConsoleShell suffix="Pro" nav={nav} roles={['vendor_admin', 'dispatcher']}>
+    <ConsoleShell suffix="Pro" nav={visible} roles={['vendor_admin', 'dispatcher']}>
       <Gate roles={['vendor_admin', 'dispatcher']} allowSignUp={false} signInHeading="Duly Pro">
         <VendorOnly />
       </Gate>

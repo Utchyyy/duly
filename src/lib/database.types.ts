@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_features: {
+        Row: { enabled: boolean; key: string; note: string | null; updated_at: string; updated_by: string | null }
+        Insert: { enabled?: boolean; key: string; note?: string | null; updated_at?: string; updated_by?: string | null }
+        Update: { enabled?: boolean; key?: string; note?: string | null; updated_at?: string; updated_by?: string | null }
+        Relationships: []
+      }
+      enterprise_vendors: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          enterprise_org_id: string
+          id: string
+          note: string | null
+          status: string
+          status_changed_at: string | null
+          status_changed_by: string | null
+          vendor_org_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          enterprise_org_id: string
+          id?: string
+          note?: string | null
+          status?: string
+          status_changed_at?: string | null
+          status_changed_by?: string | null
+          vendor_org_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          enterprise_org_id?: string
+          id?: string
+          note?: string | null
+          status?: string
+          status_changed_at?: string | null
+          status_changed_by?: string | null
+          vendor_org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enterprise_vendors_enterprise_org_id_fkey"
+            columns: ["enterprise_org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enterprise_vendors_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_access: {
+        Row: { created_at: string; granted_by: string | null; id: string; role: string; site_id: string; user_id: string }
+        Insert: { created_at?: string; granted_by?: string | null; id?: string; role: string; site_id: string; user_id: string }
+        Update: { created_at?: string; granted_by?: string | null; id?: string; role?: string; site_id?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "site_access_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_queue: {
         Row: {
           created_at: string
@@ -1957,6 +2028,18 @@ export type Database = {
         Returns: string
       }
       approve_job: { Args: { p_job: string }; Returns: undefined }
+      can_judge_job: { Args: { p_job: string }; Returns: boolean }
+      enterprise_add_vendor: { Args: { p_enterprise: string; p_vendor: string; p_note?: string }; Returns: undefined }
+      enterprise_set_vendor_status: { Args: { p_enterprise: string; p_vendor: string; p_status: string }; Returns: undefined }
+      grant_site_access: { Args: { p_site: string; p_email: string; p_role: string }; Returns: string }
+      revoke_site_access: { Args: { p_site: string; p_user: string }; Returns: undefined }
+      site_access_list: {
+        Args: { p_site: string }
+        Returns: { user_id: string; email: string; full_name: string | null; role: string; granted_at: string }[]
+      }
+      admin_set_feature: { Args: { p_key: string; p_enabled: boolean }; Returns: undefined }
+      admin_create_enterprise: { Args: { p_name: string; p_owner_email: string }; Returns: string }
+      admin_create_vendor: { Args: { p_name: string; p_admin_email: string }; Returns: string }
       job_check_mode: { Args: { p_job: string }; Returns: string }
       dispatch_board: {
         Args: { p_vendor: string; p_from: string; p_to: string }

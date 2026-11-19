@@ -84,6 +84,11 @@ begin
   buyer_org := public.create_buyer_org('Test buyer', p_segment);
   insert into public.sites (org_id, name, town, postcode, lat, lng, geofence_m)
     values (buyer_org, 'Site', 'Colchester', 'CO1 1AA', 51.8892, 0.9042, 150) returning id into site;
+  -- An Enterprise uses only vendors on its roster: Duly adds the vendor and the Enterprise activates it.
+  if p_segment = 'enterprise' then
+    perform tests.as_user(admin_u); perform public.enterprise_add_vendor(buyer_org, vendor_org);
+    perform tests.as_user(buyer_u); perform public.enterprise_set_vendor_status(buyer_org, vendor_org, 'active');
+  end if;
   insert into public.briefs (buyer_org_id, site_id, title) values (buyer_org, site, 'Clean') returning id into brief;
   insert into public.brief_versions (brief_id, version, visits_per_week, preferred_days, preferred_start, schedule)
   values (brief, 1, 1, p_days, p_start, '[{"name":"Clinical","areas":[

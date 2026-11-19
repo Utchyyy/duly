@@ -4,6 +4,7 @@ import type { FormEvent } from 'react'
 import { hasRole, useAuth } from '#/lib/auth'
 import { label, money, must, useLoad, when } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
+import { useFeatures } from '#/lib/useFeatures'
 import { Empty } from './Shells'
 import { TeamManager } from './TeamManager'
 import { Badge, ErrorNote, Loading, Section, Table } from './ui'
@@ -18,7 +19,8 @@ export function AreaLinks() {
   if (hasRole(memberships, ['vendor_admin', 'dispatcher'])) links.push({ to: '/pro', text: 'Duly Pro' })
   if (hasWorkerRecord || hasRole(memberships, ['operative'])) links.push({ to: '/crew', text: 'Duly Crew' })
   if (hasRole(memberships, ['platform_admin'])) links.push({ to: '/admin', text: 'Duly Admin' })
-  if (memberships.some((m) => m.org?.kind === 'buyer' && m.org.segment !== 'homeowner')) links.push({ to: '/business', text: 'Business' })
+  if (memberships.some((m) => m.org?.kind === 'buyer' && m.org.segment === 'enterprise')) links.push({ to: '/enterprise', text: 'Enterprise' })
+  if (memberships.some((m) => m.org?.kind === 'buyer' && m.org.segment !== 'homeowner' && m.org.segment !== 'enterprise')) links.push({ to: '/business', text: 'Business' })
   if (memberships.some((m) => m.org?.kind === 'buyer' && m.org.segment === 'homeowner')) links.push({ to: '/', text: 'Home' })
   if (links.length < 2) return null
   return (
@@ -40,6 +42,7 @@ function draftTitle(draft: unknown): string {
 /** Home for buyers. `mode` decides which segments an account can be started in. */
 export function BuyerHome({ mode }: { mode: 'home' | 'business' }) {
   const { memberships, refresh } = useAuth()
+  const { ready, features } = useFeatures()
   const buyerOrgs = memberships.filter(
     (m) =>
       m.org?.kind === 'buyer' &&
@@ -51,7 +54,15 @@ export function BuyerHome({ mode }: { mode: 'home' | 'business' }) {
     return (
       <div className="space-y-6">
         <AreaLinks />
-        <StartAccount mode={mode} onDone={refresh} />
+        {!ready ? (
+          <Loading />
+        ) : features.buyer_signup ? (
+          <StartAccount mode={mode} onDone={refresh} />
+        ) : (
+          <Empty title="New accounts are by invitation">
+            If you work with an Enterprise or a cleaning company on Duly, ask them to give you access. If you were expecting to see sites here, sign in with the email address they used.
+          </Empty>
+        )}
       </div>
     )
   }
@@ -98,6 +109,7 @@ function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgN
   }, [orgId])
 
   const { memberships } = useAuth()
+  const { features } = useFeatures()
   const canDraft = memberships.some((m) => m.org_id === orgId && (m.role === 'owner' || m.role === 'approver'))
   const siteName = (id: string) => data?.sites.find((s) => s.id === id)?.name ?? ''
   const place = mode === 'home' ? 'home' : 'site'
@@ -234,9 +246,11 @@ function BuyerDashboard({ orgId, orgName, mode, isOwner }: { orgId: string; orgN
               />
             </Section>
           )}
-          <Section title="Vendors on Duly">
-            <VendorDirectory />
-          </Section>
+          {features.marketplace && (
+            <Section title="Vendors on Duly">
+              <VendorDirectory />
+            </Section>
+          )}
         </>
       )}
     </div>
@@ -256,6 +270,7 @@ function StartAccount({ mode, onDone }: { mode: 'home' | 'business'; onDone: () 
       .from('segments')
       .select('code, name')
       .neq('code', 'homeowner')
+      .neq('code', 'enterprise') // Enterprises are set up by Duly, not self-serve
       .order('name')
       .then(({ data }) => setSegments(data ?? []))
   }, [mode])

@@ -7,6 +7,7 @@ import { Badge, ErrorNote, Loading, Section } from '#/components/ui'
 import type { Json } from '#/lib/database.types'
 import { day, money, must, useLoad } from '#/lib/format'
 import { hoursLabel, newId, parseSchedule, totalMinutes } from '#/lib/schedule'
+import { useFeatures } from '#/lib/useFeatures'
 import type { Schedule } from '#/lib/schedule'
 import { supabase } from '#/lib/supabase'
 import { parseLegend, parsePlan } from '#/lib/workplan'
@@ -31,6 +32,7 @@ type Price = { lines?: PriceLine[]; labour?: number; urgency_amount?: number; to
 
 function Brief() {
   const { briefId } = Route.useParams()
+  const { features } = useFeatures()
   const { data, error, reload } = useLoad(async () => {
     const db = supabase()
     const brief = must(
@@ -65,7 +67,7 @@ function Brief() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <Link to={brief.org?.segment === 'homeowner' ? '/' : '/business'} className="link-action text-sm font-medium text-primary">
+        <Link to={brief.org?.segment === 'homeowner' ? '/' : brief.org?.segment === 'enterprise' ? '/enterprise' : '/business'} className="link-action text-sm font-medium text-primary">
           ← Back
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -82,14 +84,20 @@ function Brief() {
           <ScheduleView schedule={parseSchedule(version.schedule)} />
           <VisitsSummary days={version.preferred_days} start={version.preferred_start} notes={version.notes} />
           <Contracts contracts={data.contracts} hasPattern={Boolean(version.preferred_days?.length && version.preferred_start)} />
-          <Vendors
-            briefId={brief.id}
-            version={version.version}
-            siteId={brief.site?.id ?? ''}
-            quotes={data.quotes}
-            currency={currency}
-            onChange={reload}
-          />
+          {brief.org?.segment === 'enterprise' ? (
+            <RosterVendors enterpriseId={brief.buyer_org_id} briefId={brief.id} version={version.version} quotes={data.quotes} onChange={reload} />
+          ) : (
+            features.marketplace && (
+              <Vendors
+                briefId={brief.id}
+                version={version.version}
+                siteId={brief.site?.id ?? ''}
+                quotes={data.quotes}
+                currency={currency}
+                onChange={reload}
+              />
+            )
+          )}
           <Quotes
             quotes={data.quotes.filter((q) => q.brief_version === version.version)}
             currency={currency}
@@ -229,7 +237,7 @@ function Editor({
     <div className="space-y-6">
       <div className="card bg-tint/50 p-4 text-sm">
         Adjust the areas, minutes and standards until they match what you want done. When you lock the brief, it becomes the
-        contract: vendors price exactly this, and the cleaner is checked against these standards.
+        contract: {segment === 'enterprise' ? 'your vendor builds its work schedule around exactly this' : 'vendors price exactly this'}, and the cleaner is checked against these standards.
       </div>
       {schedule.map((sec, si) => (
         <div key={si} className="card divide-y divide-line">
@@ -325,7 +333,7 @@ function Editor({
 
       <div className="card space-y-4 p-4">
         <h2 className="text-xl">Regular visits</h2>
-        <p className="text-sm text-ink-2">Leave the days blank for a one-off clean. Pick days to have Duly book the visits for you after you accept a quote.</p>
+        <p className="text-sm text-ink-2">Leave the days blank for a one-off clean. Pick days to have Duly book the visits for you after you accept {segment === 'enterprise' ? 'a vendor’s work schedule' : 'a quote'}.</p>
         <div className="flex flex-wrap gap-2">
           {weekDays.map((d) => {
             const on = days.includes(d.code)
@@ -390,7 +398,7 @@ function Editor({
             </>
           ) : (
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => setConfirmLock(true)}>
-              Lock brief and find vendors
+              {segment === 'enterprise' ? 'Lock brief and appoint a vendor' : 'Lock brief and find vendors'}
             </button>
           )}
         </div>
@@ -548,6 +556,66 @@ function Vendors({
   )
 }
 
+/** An Enterprise appoints a vendor from its roster: only active vendors can be invited. */
+function RosterVendors({ enterpriseId, briefId, version, quotes, onChange }: { enterpriseId: string; briefId: string; version: number; quotes: QuoteRow[]; onChange: () => void }) {
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const { data, error: loadError } = useLoad(
+    async () =>
+      must(
+        await supabase()
+          .from('enterprise_vendors')
+          .select('vendor_org_id, status, vendor:organisations!enterprise_vendors_vendor_org_id_fkey(name)')
+          .eq('enterprise_org_id', enterpriseId)
+          .order('created_at'),
+      ),
+    [enterpriseId],
+  )
+
+  async function appoint(vendorId: string) {
+    setBusy(vendorId)
+    const { error: err } = await supabase().from('quotes').insert({ brief_id: briefId, brief_version: version, vendor_org_id: vendorId })
+    setBusy(null)
+    if (err) return setError(err.message)
+    onChange()
+  }
+
+  const asked = new Map(quotes.filter((q) => q.brief_version === version).map((q) => [q.vendor?.id, q.status]))
+  return (
+    <Section title="Appoint a vendor">
+      <p className="text-sm text-ink-2">
+        Choose one of your vendors. They send back a work schedule for this brief, and you accept it to start the visits. Only vendors you have accepted onto your roster can be appointed.
+      </p>
+      <ErrorNote message={loadError ?? error} />
+      {!data ? (
+        <Loading />
+      ) : data.length === 0 ? (
+        <Empty title="No vendors on your roster yet">Duly adds your vendors during onboarding.</Empty>
+      ) : (
+        <ul className="space-y-2">
+          {data.map((r) => (
+            <li key={r.vendor_org_id} className="card flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <p className="font-semibold">{r.vendor?.name}</p>
+                {r.status !== 'active' && <p className="text-sm text-ink-2">{r.status === 'invited' ? 'Not accepted onto your roster yet. Accept it under Vendors.' : 'Suspended.'}</p>}
+              </div>
+              {asked.has(r.vendor_org_id) ? (
+                <Badge value={asked.get(r.vendor_org_id) ?? 'invited'} />
+              ) : r.status === 'active' ? (
+                <button className="btn btn-primary text-sm" disabled={busy === r.vendor_org_id} onClick={() => void appoint(r.vendor_org_id)}>
+                  Appoint
+                </button>
+              ) : (
+                <Badge value={r.status} />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  )
+}
+
 function Quotes({ quotes, currency, hasPattern, schedules }: { quotes: QuoteRow[]; currency: string; hasPattern: boolean; schedules: { quote_id: string; status: string; plan: unknown; legend: unknown }[] }) {
   const navigate = useNavigate()
   const submitted = quotes.filter((q) => q.status === 'submitted' || q.status === 'accepted')
@@ -586,7 +654,7 @@ function Quotes({ quotes, currency, hasPattern, schedules }: { quotes: QuoteRow[
                     <p className="font-semibold">{q.vendor?.name}</p>
                     <p className="text-sm text-ink-2">Valid until {day(q.valid_until)}</p>
                   </div>
-                  <p className="font-display text-2xl">{money(q.total, q.currency || currency)}</p>
+                  {q.total != null && <p className="font-display text-2xl">{money(q.total, q.currency || currency)}</p>}
                 </div>
                 {schedules.find((x) => x.quote_id === q.id) && (
                   <details className="mt-1 text-sm">
@@ -597,6 +665,8 @@ function Quotes({ quotes, currency, hasPattern, schedules }: { quotes: QuoteRow[
                     <WorkPlanView plan={parsePlan(schedules.find((x) => x.quote_id === q.id)?.plan)} legend={parseLegend(schedules.find((x) => x.quote_id === q.id)?.legend)} />
                   </details>
                 )}
+                {q.total == null && <p className="mt-1 text-sm text-ink-2">No price on Duly: this is the vendor's work schedule, and invoicing is outside Duly.</p>}
+                {q.total != null && (
                 <details className="mt-2 text-sm">
                   <summary className="flex min-h-[44px] cursor-pointer items-center font-medium text-primary">See how it's priced</summary>
                   <ul className="space-y-1 text-ink-2">
@@ -616,6 +686,7 @@ function Quotes({ quotes, currency, hasPattern, schedules }: { quotes: QuoteRow[
                     ) : null}
                   </ul>
                 </details>
+                )}
                 {q.status === 'accepted' ? (
                   <Badge value="accepted" />
                 ) : (

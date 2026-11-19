@@ -23,11 +23,12 @@ begin
   end loop;
 end $$;
 
--- Invoice-terms segments (enterprise, healthcare): invoice per month, due month end plus payment terms; no escrow, no direct debit.
+-- Invoice-terms segments (healthcare): invoice per month, due month end plus payment terms; no escrow, no direct debit.
+-- (The enterprise segment bills outside Duly: see 23_enterprise.)
 do $$
 declare seg text; f jsonb; v_job uuid; p public.payments; tz text := 'Europe/London'; expect date; terms integer;
 begin
-  foreach seg in array array['enterprise', 'healthcare'] loop
+  foreach seg in array array['healthcare'] loop
     f := tests.book_job(seg);
     v_job := (f ->> 'job')::uuid;
     perform tests.eq((select billing from public.contracts where id = (f ->> 'contract')::uuid), 'monthly', seg || ': contract bills monthly');
