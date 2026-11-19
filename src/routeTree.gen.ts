@@ -36,6 +36,7 @@ import { Route as DraftsItemIdRouteImport } from './routes/drafts.$itemId'
 import { Route as DraftsNewRouteImport } from './routes/drafts.new'
 import { Route as EnterpriseIndexRouteImport } from './routes/enterprise.index'
 import { Route as EnterpriseDeliveryRouteImport } from './routes/enterprise.delivery'
+import { Route as EnterpriseReportsRouteImport } from './routes/enterprise.reports'
 import { Route as EnterpriseSitesRouteImport } from './routes/enterprise.sites'
 import { Route as EnterpriseVendorsRouteImport } from './routes/enterprise.vendors'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
@@ -190,6 +191,11 @@ const EnterpriseDeliveryRoute = EnterpriseDeliveryRouteImport.update({
   path: '/delivery',
   getParentRoute: () => EnterpriseRoute,
 } as any)
+const EnterpriseReportsRoute = EnterpriseReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => EnterpriseRoute,
+} as any)
 const EnterpriseSitesRoute = EnterpriseSitesRouteImport.update({
   id: '/sites',
   path: '/sites',
@@ -305,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
   '/enterprise/delivery': typeof EnterpriseDeliveryRoute
+  '/enterprise/reports': typeof EnterpriseReportsRoute
   '/enterprise/sites': typeof EnterpriseSitesRoute
   '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -347,6 +354,7 @@ export interface FileRoutesByTo {
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
   '/enterprise/delivery': typeof EnterpriseDeliveryRoute
+  '/enterprise/reports': typeof EnterpriseReportsRoute
   '/enterprise/sites': typeof EnterpriseSitesRoute
   '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -395,6 +403,7 @@ export interface FileRoutesById {
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
   '/enterprise/delivery': typeof EnterpriseDeliveryRoute
+  '/enterprise/reports': typeof EnterpriseReportsRoute
   '/enterprise/sites': typeof EnterpriseSitesRoute
   '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -444,6 +453,7 @@ export interface FileRouteTypes {
     | '/drafts/$itemId'
     | '/drafts/new'
     | '/enterprise/delivery'
+    | '/enterprise/reports'
     | '/enterprise/sites'
     | '/enterprise/vendors'
     | '/jobs/$jobId'
@@ -486,6 +496,7 @@ export interface FileRouteTypes {
     | '/drafts/$itemId'
     | '/drafts/new'
     | '/enterprise/delivery'
+    | '/enterprise/reports'
     | '/enterprise/sites'
     | '/enterprise/vendors'
     | '/jobs/$jobId'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/drafts/$itemId'
     | '/drafts/new'
     | '/enterprise/delivery'
+    | '/enterprise/reports'
     | '/enterprise/sites'
     | '/enterprise/vendors'
     | '/jobs/$jobId'
@@ -766,6 +778,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnterpriseDeliveryRouteImport
       parentRoute: typeof EnterpriseRoute
     }
+    '/enterprise/reports': {
+      id: '/enterprise/reports'
+      path: '/reports'
+      fullPath: '/enterprise/reports'
+      preLoaderRoute: typeof EnterpriseReportsRouteImport
+      parentRoute: typeof EnterpriseRoute
+    }
     '/enterprise/sites': {
       id: '/enterprise/sites'
       path: '/sites'
@@ -952,6 +971,7 @@ const CrewRouteWithChildren = CrewRoute._addFileChildren(CrewRouteChildren)
 
 interface EnterpriseRouteChildren {
   EnterpriseDeliveryRoute: typeof EnterpriseDeliveryRoute
+  EnterpriseReportsRoute: typeof EnterpriseReportsRoute
   EnterpriseSitesRoute: typeof EnterpriseSitesRoute
   EnterpriseVendorsRoute: typeof EnterpriseVendorsRoute
   EnterpriseIndexRoute: typeof EnterpriseIndexRoute
@@ -959,6 +979,7 @@ interface EnterpriseRouteChildren {
 
 const EnterpriseRouteChildren: EnterpriseRouteChildren = {
   EnterpriseDeliveryRoute: EnterpriseDeliveryRoute,
+  EnterpriseReportsRoute: EnterpriseReportsRoute,
   EnterpriseSitesRoute: EnterpriseSitesRoute,
   EnterpriseVendorsRoute: EnterpriseVendorsRoute,
   EnterpriseIndexRoute: EnterpriseIndexRoute,

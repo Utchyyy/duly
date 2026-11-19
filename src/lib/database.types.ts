@@ -76,6 +76,38 @@ export type Database = {
           { foreignKeyName: "enterprise_requirements_enterprise_org_id_fkey"; columns: ["enterprise_org_id"]; isOneToOne: false; referencedRelation: "organisations"; referencedColumns: ["id"] },
         ]
       }
+      enterprise_sla_targets: {
+        Row: {
+          enterprise_org_id: string
+          evidenced_rate: number | null
+          id: string
+          max_complaints_per_100: number | null
+          on_time_rate: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enterprise_org_id: string
+          evidenced_rate?: number | null
+          id?: string
+          max_complaints_per_100?: number | null
+          on_time_rate?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enterprise_org_id?: string
+          evidenced_rate?: number | null
+          id?: string
+          max_complaints_per_100?: number | null
+          on_time_rate?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "enterprise_sla_targets_enterprise_org_id_fkey"; columns: ["enterprise_org_id"]; isOneToOne: true; referencedRelation: "organisations"; referencedColumns: ["id"] },
+        ]
+      }
       enterprise_vendors: {
         Row: {
           added_by: string | null
@@ -2154,6 +2186,57 @@ export type Database = {
         }[]
       }
       enterprise_escalate_issue: { Args: { p_issue: string }; Returns: undefined }
+      enterprise_set_sla_targets: { Args: { p_enterprise: string; p_on_time: number | null; p_evidenced: number | null; p_max_complaints: number | null }; Returns: undefined }
+      enterprise_sla_pack: {
+        Args: { p_enterprise: string; p_month: string }
+        Returns: {
+          vendor_org_id: string
+          vendor_name: string
+          site_id: string | null
+          site_name: string | null
+          is_vendor_total: boolean
+          scheduled_visits: number
+          due_visits: number
+          checked_in_visits: number
+          evidenced_visits: number
+          evidenced_rate: number | null
+          on_time_visits: number
+          on_time_rate: number | null
+          late_visits: number
+          missed_visits: number
+          avg_late_minutes: number | null
+          plan_followed_rate: number | null
+          first_time_right_rate: number | null
+          complaints: number
+          complaints_per_100: number | null
+          open_complaints: number
+          sla_breaches: number
+          on_time_target: number | null
+          evidenced_target: number | null
+          max_complaints_per_100: number | null
+          on_time_met: boolean | null
+          evidenced_met: boolean | null
+          complaints_met: boolean | null
+        }[]
+      }
+      enterprise_sla_exceptions: {
+        Args: { p_enterprise: string; p_month: string }
+        Returns: {
+          job_id: string
+          vendor_org_id: string
+          vendor_name: string
+          site_id: string
+          site_name: string
+          scheduled_start: string
+          status: string
+          missed: boolean
+          late_minutes: number | null
+          complaints: number
+          open_complaints: number
+          sla_breached: boolean
+          complaint_kinds: string | null
+        }[]
+      }
       enterprise_set_requirements: { Args: { p_enterprise: string; p_kinds: Database["public"]["Enums"]["claim_kind"][] }; Returns: undefined }
       enterprise_review_claim: { Args: { p_enterprise: string; p_claim: string; p_decision: string; p_note?: string }; Returns: undefined }
       enterprise_vendor_compliance: {
