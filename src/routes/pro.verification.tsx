@@ -28,11 +28,13 @@ function ProVerification() {
   const vendor = useVendor()!
   const { data, error, reload } = useLoad(async () => {
     const db = supabase()
-    const [claims, org] = await Promise.all([
+    const [claims, org, reviews] = await Promise.all([
       db.from('verification_claims').select('id, kind, status, reference, valid_until, notes, created_at').eq('org_id', vendor.id).is('subject_user_id', null).order('created_at'),
       db.from('organisations').select('verification_tier, companies_house_no').eq('id', vendor.id).single(),
+      // What each Enterprise you work for said about these claims (row security shows you only decisions on your own).
+      db.from('enterprise_claim_reviews').select('claim_id, decision, note, reviewed_at, enterprise:organisations!enterprise_claim_reviews_enterprise_org_id_fkey(name)').order('reviewed_at'),
     ])
-    return { claims: must(claims), org: must(org) }
+    return { claims: must(claims), org: must(org), reviews: must(reviews) }
   }, [vendor.id])
 
   const [kind, setKind] = useState<ClaimKind>('companies_house')
@@ -70,7 +72,7 @@ function ProVerification() {
         </p>
       </div>
       <Section title="What you've sent">
-        <Table head={['Check', 'Reference', 'Valid until', 'Status']}>
+        <Table head={['Check', 'Reference', 'Valid until', 'Status', 'Your Enterprises']}>
           {data.claims.map((c) => (
             <tr key={c.id}>
               <td>{kinds.find((k) => k.value === c.kind)?.text ?? label(c.kind)}</td>
@@ -79,11 +81,21 @@ function ProVerification() {
               <td>
                 <Badge value={c.status} />
               </td>
+              <td className="space-y-1">
+                {data.reviews
+                  .filter((r) => r.claim_id === c.id)
+                  .map((r) => (
+                    <p key={r.enterprise?.name ?? r.reviewed_at} className="text-sm">
+                      <span className="font-medium">{r.enterprise?.name ?? 'An Enterprise'}:</span> {r.decision === 'accepted' ? 'accepted' : 'rejected'}
+                      {r.note ? ` · ${r.note}` : ''}
+                    </p>
+                  ))}
+              </td>
             </tr>
           ))}
           {data.claims.length === 0 && (
             <tr>
-              <td colSpan={4} className="text-ink-2">
+              <td colSpan={5} className="text-ink-2">
                 Nothing yet. Start with Companies House and insurance.
               </td>
             </tr>
