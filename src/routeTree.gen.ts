@@ -35,6 +35,7 @@ import { Route as CrewJobIdRouteImport } from './routes/crew.$jobId'
 import { Route as DraftsItemIdRouteImport } from './routes/drafts.$itemId'
 import { Route as DraftsNewRouteImport } from './routes/drafts.new'
 import { Route as EnterpriseIndexRouteImport } from './routes/enterprise.index'
+import { Route as EnterpriseDeliveryRouteImport } from './routes/enterprise.delivery'
 import { Route as EnterpriseSitesRouteImport } from './routes/enterprise.sites'
 import { Route as EnterpriseVendorsRouteImport } from './routes/enterprise.vendors'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
@@ -184,6 +185,11 @@ const EnterpriseIndexRoute = EnterpriseIndexRouteImport.update({
   path: '/',
   getParentRoute: () => EnterpriseRoute,
 } as any)
+const EnterpriseDeliveryRoute = EnterpriseDeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => EnterpriseRoute,
+} as any)
 const EnterpriseSitesRoute = EnterpriseSitesRouteImport.update({
   id: '/sites',
   path: '/sites',
@@ -298,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/crew/$jobId': typeof CrewJobIdRoute
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
+  '/enterprise/delivery': typeof EnterpriseDeliveryRoute
   '/enterprise/sites': typeof EnterpriseSitesRoute
   '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -339,6 +346,7 @@ export interface FileRoutesByTo {
   '/crew/$jobId': typeof CrewJobIdRoute
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
+  '/enterprise/delivery': typeof EnterpriseDeliveryRoute
   '/enterprise/sites': typeof EnterpriseSitesRoute
   '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/crew/$jobId': typeof CrewJobIdRoute
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
+  '/enterprise/delivery': typeof EnterpriseDeliveryRoute
   '/enterprise/sites': typeof EnterpriseSitesRoute
   '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -434,6 +443,7 @@ export interface FileRouteTypes {
     | '/crew/$jobId'
     | '/drafts/$itemId'
     | '/drafts/new'
+    | '/enterprise/delivery'
     | '/enterprise/sites'
     | '/enterprise/vendors'
     | '/jobs/$jobId'
@@ -475,6 +485,7 @@ export interface FileRouteTypes {
     | '/crew/$jobId'
     | '/drafts/$itemId'
     | '/drafts/new'
+    | '/enterprise/delivery'
     | '/enterprise/sites'
     | '/enterprise/vendors'
     | '/jobs/$jobId'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/crew/$jobId'
     | '/drafts/$itemId'
     | '/drafts/new'
+    | '/enterprise/delivery'
     | '/enterprise/sites'
     | '/enterprise/vendors'
     | '/jobs/$jobId'
@@ -747,6 +759,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnterpriseIndexRouteImport
       parentRoute: typeof EnterpriseRoute
     }
+    '/enterprise/delivery': {
+      id: '/enterprise/delivery'
+      path: '/delivery'
+      fullPath: '/enterprise/delivery'
+      preLoaderRoute: typeof EnterpriseDeliveryRouteImport
+      parentRoute: typeof EnterpriseRoute
+    }
     '/enterprise/sites': {
       id: '/enterprise/sites'
       path: '/sites'
@@ -932,12 +951,14 @@ const CrewRouteChildren: CrewRouteChildren = {
 const CrewRouteWithChildren = CrewRoute._addFileChildren(CrewRouteChildren)
 
 interface EnterpriseRouteChildren {
+  EnterpriseDeliveryRoute: typeof EnterpriseDeliveryRoute
   EnterpriseSitesRoute: typeof EnterpriseSitesRoute
   EnterpriseVendorsRoute: typeof EnterpriseVendorsRoute
   EnterpriseIndexRoute: typeof EnterpriseIndexRoute
 }
 
 const EnterpriseRouteChildren: EnterpriseRouteChildren = {
+  EnterpriseDeliveryRoute: EnterpriseDeliveryRoute,
   EnterpriseSitesRoute: EnterpriseSitesRoute,
   EnterpriseVendorsRoute: EnterpriseVendorsRoute,
   EnterpriseIndexRoute: EnterpriseIndexRoute,

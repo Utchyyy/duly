@@ -236,7 +236,7 @@ function Rework({ problem, reworks, onChange }: { problem: Problem; reworks: Rew
       </div>
     )
   }
-  if (problem.status === 'mediation') return <p className="rounded-lg bg-line/50 p-3">Duly is looking at this: the rework was not accepted.</p>
+  if (problem.status === 'mediation') return <p className="rounded-lg bg-line/50 p-3">Duly is looking at this. It was handed to Duly, either because the rework was not accepted or by the client's Enterprise.</p>
   if (!eligible) return null
   return (
     <div className="space-y-2 rounded-lg bg-tint p-3">

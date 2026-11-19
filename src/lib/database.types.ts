@@ -2086,6 +2086,74 @@ export type Database = {
       approve_job: { Args: { p_job: string }; Returns: undefined }
       can_judge_job: { Args: { p_job: string }; Returns: boolean }
       enterprise_add_vendor: { Args: { p_enterprise: string; p_vendor: string; p_note?: string }; Returns: undefined }
+      enterprise_delivery_board: {
+        Args: { p_enterprise: string; p_from: string; p_to: string }
+        Returns: {
+          job_id: string
+          vendor_org_id: string
+          vendor_name: string
+          site_id: string
+          site_name: string
+          town: string | null
+          scheduled_start: string
+          scheduled_end: string
+          status: string
+          is_rework: boolean
+          rework_area: string | null
+          checked_in_at: string | null
+          late_minutes: number | null
+          crew_count: number
+          planned_minutes: number
+          on_site_minutes: number | null
+          planned_areas: number | null
+          ticked_areas: number | null
+          photos: number
+          open_issues: number
+          attention: string | null
+        }[]
+      }
+      enterprise_vendor_delivery: {
+        Args: { p_enterprise: string; p_from: string; p_to: string }
+        Returns: {
+          vendor_org_id: string
+          vendor_name: string
+          roster_status: string
+          due_visits: number
+          evidenced_visits: number
+          evidenced_rate: number | null
+          checked_in_visits: number
+          on_time_visits: number
+          on_time_rate: number | null
+          late_visits: number
+          missed_visits: number
+          upcoming_visits: number
+          awaiting_check: number
+          complaints: number
+          open_issues: number
+          sla_breaches: number
+          first_time_right_rate: number | null
+        }[]
+      }
+      enterprise_open_issues: {
+        Args: { p_enterprise: string }
+        Returns: {
+          issue_id: string
+          job_id: string
+          vendor_org_id: string
+          vendor_name: string
+          site_name: string
+          scheduled_start: string
+          kind: string
+          status: string
+          plan_label: string | null
+          description: string
+          created_at: string
+          sla_due_at: string | null
+          breached: boolean
+          hours_open: number
+        }[]
+      }
+      enterprise_escalate_issue: { Args: { p_issue: string }; Returns: undefined }
       enterprise_set_requirements: { Args: { p_enterprise: string; p_kinds: Database["public"]["Enums"]["claim_kind"][] }; Returns: undefined }
       enterprise_review_claim: { Args: { p_enterprise: string; p_claim: string; p_decision: string; p_note?: string }; Returns: undefined }
       enterprise_vendor_compliance: {
