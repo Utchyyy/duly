@@ -26,6 +26,7 @@ import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPeopleRouteImport } from './routes/admin.people'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
+import { Route as AdminRetentionRouteImport } from './routes/admin.retention'
 import { Route as AdminVerificationRouteImport } from './routes/admin.verification'
 import { Route as AdminWorkersRouteImport } from './routes/admin.workers'
 import { Route as BriefsBriefIdRouteImport } from './routes/briefs.$briefId'
@@ -139,6 +140,11 @@ const AdminPeopleRoute = AdminPeopleRouteImport.update({
 const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
   id: '/policies',
   path: '/policies',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRetentionRoute = AdminRetentionRouteImport.update({
+  id: '/retention',
+  path: '/retention',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminVerificationRoute = AdminVerificationRouteImport.update({
@@ -304,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/retention': typeof AdminRetentionRoute
   '/admin/verification': typeof AdminVerificationRoute
   '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
@@ -347,6 +354,7 @@ export interface FileRoutesByTo {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/retention': typeof AdminRetentionRoute
   '/admin/verification': typeof AdminVerificationRoute
   '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
@@ -396,6 +404,7 @@ export interface FileRoutesById {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/people': typeof AdminPeopleRoute
   '/admin/policies': typeof AdminPoliciesRoute
+  '/admin/retention': typeof AdminRetentionRoute
   '/admin/verification': typeof AdminVerificationRoute
   '/admin/workers': typeof AdminWorkersRoute
   '/briefs/$briefId': typeof BriefsBriefIdRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/people'
     | '/admin/policies'
+    | '/admin/retention'
     | '/admin/verification'
     | '/admin/workers'
     | '/briefs/$briefId'
@@ -489,6 +499,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/people'
     | '/admin/policies'
+    | '/admin/retention'
     | '/admin/verification'
     | '/admin/workers'
     | '/briefs/$briefId'
@@ -537,6 +548,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/people'
     | '/admin/policies'
+    | '/admin/retention'
     | '/admin/verification'
     | '/admin/workers'
     | '/briefs/$briefId'
@@ -706,6 +718,13 @@ declare module '@tanstack/react-router' {
       path: '/policies'
       fullPath: '/admin/policies'
       preLoaderRoute: typeof AdminPoliciesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/retention': {
+      id: '/admin/retention'
+      path: '/retention'
+      fullPath: '/admin/retention'
+      preLoaderRoute: typeof AdminRetentionRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/verification': {
@@ -922,6 +941,7 @@ interface AdminRouteChildren {
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPeopleRoute: typeof AdminPeopleRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
+  AdminRetentionRoute: typeof AdminRetentionRoute
   AdminVerificationRoute: typeof AdminVerificationRoute
   AdminWorkersRoute: typeof AdminWorkersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -937,6 +957,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPeopleRoute: AdminPeopleRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
+  AdminRetentionRoute: AdminRetentionRoute,
   AdminVerificationRoute: AdminVerificationRoute,
   AdminWorkersRoute: AdminWorkersRoute,
   AdminIndexRoute: AdminIndexRoute,
