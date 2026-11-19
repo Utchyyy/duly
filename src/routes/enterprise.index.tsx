@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { Empty, Stat } from '#/components/Shells'
 import { Badge, ErrorNote, Loading, Section, Table } from '#/components/ui'
+import { claimsToReview } from '#/lib/compliance'
 import { must, useLoad, when } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
 import { useEnterprise } from '#/lib/useEnterprise'
@@ -11,7 +12,7 @@ function EnterpriseOverview() {
   const enterprise = useEnterprise()!
   const { data, error } = useLoad(async () => {
     const db = supabase()
-    const [jobs, roster, sites, problems] = await Promise.all([
+    const [jobs, roster, sites, problems, compliance] = await Promise.all([
       db
         .from('jobs')
         .select('id, status, scheduled_start, rework_of_issue, site:sites(name, town), vendor:organisations!jobs_vendor_org_id_fkey(name)')
@@ -21,8 +22,9 @@ function EnterpriseOverview() {
       db.from('enterprise_vendors').select('status').eq('enterprise_org_id', enterprise.id),
       db.from('sites').select('id', { count: 'exact', head: true }).eq('org_id', enterprise.id),
       db.from('issues').select('id, job:jobs!issues_job_id_fkey!inner(buyer_org_id)', { count: 'exact', head: true }).eq('job.buyer_org_id', enterprise.id).neq('status', 'resolved'),
+      db.rpc('enterprise_vendor_compliance', { p_enterprise: enterprise.id }),
     ])
-    return { jobs: must(jobs), roster: must(roster), sites: sites.count ?? 0, problems: problems.count ?? 0 }
+    return { jobs: must(jobs), roster: must(roster), sites: sites.count ?? 0, problems: problems.count ?? 0, claimsToReview: claimsToReview(must(compliance)) }
   }, [enterprise.id])
 
   if (error) return <ErrorNote message={error} />
@@ -51,6 +53,17 @@ function EnterpriseOverview() {
 
       {data.roster.length === 0 && (
         <Empty title="No vendors on your roster yet">Duly adds your vendors during onboarding. You then accept each one under Vendors before you can appoint it.</Empty>
+      )}
+
+      {data.claimsToReview > 0 && (
+        <div className="card flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+          <p>
+            <span className="font-semibold">{data.claimsToReview} vendor claim{data.claimsToReview === 1 ? '' : 's'}</span> waiting for your review.
+          </p>
+          <Link to="/enterprise/vendors" className="link-action font-medium text-primary">
+            Review evidence
+          </Link>
+        </div>
       )}
 
       {toCheck.length > 0 && (

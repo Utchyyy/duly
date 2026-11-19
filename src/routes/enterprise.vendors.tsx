@@ -4,6 +4,7 @@ import { Empty } from '#/components/Shells'
 import { Badge, ErrorNote, Loading, Section, Table } from '#/components/ui'
 import { day, must, useLoad } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
+import { VendorCompliance } from '#/components/VendorCompliance'
 import { useEnterprise } from '#/lib/useEnterprise'
 
 export const Route = createFileRoute('/enterprise/vendors')({ component: EnterpriseVendors })
@@ -12,17 +13,19 @@ function EnterpriseVendors() {
   const enterprise = useEnterprise()!
   const [busy, setBusy] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const { data, error, reload } = useLoad(
-    async () =>
-      must(
-        await supabase()
-          .from('enterprise_vendors')
-          .select('vendor_org_id, status, note, created_at, status_changed_at, vendor:organisations!enterprise_vendors_vendor_org_id_fkey(name)')
-          .eq('enterprise_org_id', enterprise.id)
-          .order('created_at'),
-      ),
-    [enterprise.id],
-  )
+  const { data, error, reload } = useLoad(async () => {
+    const db = supabase()
+    const [roster, required, compliance] = await Promise.all([
+      db
+        .from('enterprise_vendors')
+        .select('vendor_org_id, status, note, created_at, status_changed_at, vendor:organisations!enterprise_vendors_vendor_org_id_fkey(name)')
+        .eq('enterprise_org_id', enterprise.id)
+        .order('created_at'),
+      db.from('enterprise_requirements').select('kind').eq('enterprise_org_id', enterprise.id).order('kind'),
+      db.rpc('enterprise_vendor_compliance', { p_enterprise: enterprise.id }),
+    ])
+    return { roster: must(roster), required: must(required).map((r) => r.kind as string), compliance: must(compliance) }
+  }, [enterprise.id])
 
   async function setStatus(vendorId: string, status: 'active' | 'suspended') {
     setBusy(vendorId)
@@ -47,11 +50,11 @@ function EnterpriseVendors() {
       </div>
       <ErrorNote message={actionError} />
       <Section title="Your roster">
-        {data.length === 0 ? (
+        {data.roster.length === 0 ? (
           <Empty title="No vendors yet">Duly adds your vendors during onboarding.</Empty>
         ) : (
           <Table head={['Vendor', 'Status', 'Note', 'Added', '']}>
-            {data.map((r) => (
+            {data.roster.map((r) => (
               <tr key={r.vendor_org_id}>
                 <td className="font-semibold">{r.vendor?.name}</td>
                 <td>
@@ -76,6 +79,7 @@ function EnterpriseVendors() {
           </Table>
         )}
       </Section>
+      <VendorCompliance enterpriseId={enterprise.id} canManage={enterprise.canManage} required={data.required} rows={data.compliance} onChange={reload} />
     </div>
   )
 }

@@ -20,6 +20,62 @@ export type Database = {
         Update: { enabled?: boolean; key?: string; note?: string | null; updated_at?: string; updated_by?: string | null }
         Relationships: []
       }
+      enterprise_claim_reviews: {
+        Row: {
+          claim_id: string
+          decision: string
+          enterprise_org_id: string
+          id: string
+          note: string | null
+          reviewed_at: string
+          reviewed_by: string | null
+        }
+        Insert: {
+          claim_id: string
+          decision: string
+          enterprise_org_id: string
+          id?: string
+          note?: string | null
+          reviewed_at?: string
+          reviewed_by?: string | null
+        }
+        Update: {
+          claim_id?: string
+          decision?: string
+          enterprise_org_id?: string
+          id?: string
+          note?: string | null
+          reviewed_at?: string
+          reviewed_by?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "enterprise_claim_reviews_claim_id_fkey"; columns: ["claim_id"]; isOneToOne: false; referencedRelation: "verification_claims"; referencedColumns: ["id"] },
+          { foreignKeyName: "enterprise_claim_reviews_enterprise_org_id_fkey"; columns: ["enterprise_org_id"]; isOneToOne: false; referencedRelation: "organisations"; referencedColumns: ["id"] },
+        ]
+      }
+      enterprise_requirements: {
+        Row: {
+          created_at: string
+          enterprise_org_id: string
+          id: string
+          kind: Database["public"]["Enums"]["claim_kind"]
+        }
+        Insert: {
+          created_at?: string
+          enterprise_org_id: string
+          id?: string
+          kind: Database["public"]["Enums"]["claim_kind"]
+        }
+        Update: {
+          created_at?: string
+          enterprise_org_id?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["claim_kind"]
+        }
+        Relationships: [
+          { foreignKeyName: "enterprise_requirements_enterprise_org_id_fkey"; columns: ["enterprise_org_id"]; isOneToOne: false; referencedRelation: "organisations"; referencedColumns: ["id"] },
+        ]
+      }
       enterprise_vendors: {
         Row: {
           added_by: string | null
@@ -2030,6 +2086,24 @@ export type Database = {
       approve_job: { Args: { p_job: string }; Returns: undefined }
       can_judge_job: { Args: { p_job: string }; Returns: boolean }
       enterprise_add_vendor: { Args: { p_enterprise: string; p_vendor: string; p_note?: string }; Returns: undefined }
+      enterprise_set_requirements: { Args: { p_enterprise: string; p_kinds: Database["public"]["Enums"]["claim_kind"][] }; Returns: undefined }
+      enterprise_review_claim: { Args: { p_enterprise: string; p_claim: string; p_decision: string; p_note?: string }; Returns: undefined }
+      enterprise_vendor_compliance: {
+        Args: { p_enterprise: string }
+        Returns: {
+          vendor_org_id: string
+          vendor_name: string
+          roster_status: string
+          kind: Database["public"]["Enums"]["claim_kind"]
+          state: string
+          claim_id: string | null
+          reference: string | null
+          valid_until: string | null
+          duly_status: string | null
+          reviewed_at: string | null
+          note: string | null
+        }[]
+      }
       enterprise_set_vendor_status: { Args: { p_enterprise: string; p_vendor: string; p_status: string }; Returns: undefined }
       grant_site_access: { Args: { p_site: string; p_email: string; p_role: string }; Returns: string }
       revoke_site_access: { Args: { p_site: string; p_user: string }; Returns: undefined }
