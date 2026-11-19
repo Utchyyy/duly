@@ -76,6 +76,41 @@ export type Database = {
           { foreignKeyName: "enterprise_requirements_enterprise_org_id_fkey"; columns: ["enterprise_org_id"]; isOneToOne: false; referencedRelation: "organisations"; referencedColumns: ["id"] },
         ]
       }
+      enterprise_sla_snapshots: {
+        Row: {
+          enterprise_org_id: string
+          exceptions: Json
+          id: string
+          month: string
+          pack: Json
+          source: string
+          taken_at: string
+          taken_by: string | null
+        }
+        Insert: {
+          enterprise_org_id: string
+          exceptions: Json
+          id?: string
+          month: string
+          pack: Json
+          source: string
+          taken_at?: string
+          taken_by?: string | null
+        }
+        Update: {
+          enterprise_org_id?: string
+          exceptions?: Json
+          id?: string
+          month?: string
+          pack?: Json
+          source?: string
+          taken_at?: string
+          taken_by?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "enterprise_sla_snapshots_enterprise_org_id_fkey"; columns: ["enterprise_org_id"]; isOneToOne: false; referencedRelation: "organisations"; referencedColumns: ["id"] },
+        ]
+      }
       enterprise_sla_targets: {
         Row: {
           enterprise_org_id: string
@@ -2186,6 +2221,11 @@ export type Database = {
         }[]
       }
       enterprise_escalate_issue: { Args: { p_issue: string }; Returns: undefined }
+      enterprise_freeze_sla_month: { Args: { p_enterprise: string; p_month: string }; Returns: undefined }
+      enterprise_sla_snapshot: {
+        Args: { p_enterprise: string; p_month: string }
+        Returns: { month: string; taken_at: string; source: string; pack: Json; exceptions: Json }[]
+      }
       enterprise_set_sla_targets: { Args: { p_enterprise: string; p_on_time: number | null; p_evidenced: number | null; p_max_complaints: number | null }; Returns: undefined }
       enterprise_sla_pack: {
         Args: { p_enterprise: string; p_month: string }

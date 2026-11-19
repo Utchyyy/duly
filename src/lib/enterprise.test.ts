@@ -78,7 +78,7 @@ test('months move as the first of the month and read as words', async () => {
 })
 
 test('the SLA CSV quotes cells and defuses anything a spreadsheet would run as a formula', async () => {
-  const { csvCell, packCsv, exceptionsCsv, packFileName } = await import('./sla.ts')
+  const { csvCell, packCsv, exceptionsCsv, packFileName, csvBasis } = await import('./sla.ts')
   assert.equal(csvCell('plain'), 'plain')
   assert.equal(csvCell('a, b'), '"a, b"')
   assert.equal(csvCell('say "hi"'), '"say ""hi"""')
@@ -94,15 +94,18 @@ test('the SLA CSV quotes cells and defuses anything a spreadsheet would run as a
     on_time_visits: 2, on_time_rate: 0.667, late_visits: 1, missed_visits: 2, avg_late_minutes: 16.7, plan_followed_rate: 1, first_time_right_rate: 0.667, complaints: 2,
     complaints_per_100: 40, open_complaints: 1, sla_breaches: 2, on_time_target: 0.95, evidenced_target: null, max_complaints_per_100: 5, on_time_met: false, evidenced_met: null, complaints_met: false,
   }
-  const csv = packCsv('2026-09-01', 'Soft FM, One', [row])
+  const csv = packCsv('2026-09-01', 'Soft FM, One', [row], 'Frozen 2026-10-03')
   const lines = csv.replace('﻿', '').trim().split('\r\n')
   assert.equal(lines.length, 2)
-  assert.match(lines[1], /^September 2026,"Soft FM, One",'=Evil Ltd,All sites,Vendor,5,5,3,3,60,2,66.7,1,2,16.7,100,66.7,2,40,1,2,95,Not met,,,5,Not met$/)
+  assert.match(lines[1], /^September 2026,Frozen 2026-10-03,"Soft FM, One",'=Evil Ltd,All sites,Vendor,5,5,3,3,60,2,66.7,1,2,16.7,100,66.7,2,40,1,2,95,Not met,,,5,Not met$/)
   assert.ok(csv.startsWith('﻿'))
-  const ex = exceptionsCsv('2026-09-01', 'E', [{ vendor_name: 'V', site_name: 'S', scheduled_start: '2026-09-03T10:00:00Z', status: 'matched', missed: true, late_minutes: null, complaints: 1, open_complaints: 1, sla_breached: true, complaint_kinds: 'no_show' }])
-  assert.match(ex.split('\r\n')[1], /,V,S,2026-09-03T10:00:00Z,matched,Yes,,1,1,Yes,no_show$/)
-  assert.equal(packFileName('pack', 'Soft FM One!', '2026-09-01'), 'duly-sla-pack-soft-fm-one-2026-09.csv')
-  assert.equal(packFileName('visits', '???', '2026-09-01'), 'duly-sla-visits-enterprise-2026-09.csv')
+  const ex = exceptionsCsv('2026-09-01', 'E', [{ vendor_name: 'V', site_name: 'S', scheduled_start: '2026-09-03T10:00:00Z', status: 'matched', missed: true, late_minutes: null, complaints: 1, open_complaints: 1, sla_breached: true, complaint_kinds: 'no_show' }], 'Live 2026-11-19 10:00 UTC')
+  assert.match(ex.split('\r\n')[1], /^September 2026,Live 2026-11-19 10:00 UTC,E,V,S,2026-09-03T10:00:00Z,matched,Yes,,1,1,Yes,no_show$/)
+  assert.equal(packFileName('pack', 'Soft FM One!', '2026-09-01', true), 'duly-sla-pack-soft-fm-one-2026-09-frozen.csv')
+  assert.equal(packFileName('pack', 'Soft FM One!', '2026-09-01', false), 'duly-sla-pack-soft-fm-one-2026-09-live.csv')
+  assert.equal(csvBasis('2026-10-03T02:15:00+00:00'), 'Frozen 2026-10-03')
+  assert.equal(csvBasis(null, new Date('2026-11-19T10:07:45Z')), 'Live 2026-11-19 10:07 UTC')
+  assert.equal(packFileName('visits', '???', '2026-09-01', true), 'duly-sla-visits-enterprise-2026-09-frozen.csv')
 })
 
 test('a claim document is checked, named and stored safely', async () => {
