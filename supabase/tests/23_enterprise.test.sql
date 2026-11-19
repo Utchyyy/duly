@@ -125,6 +125,13 @@ begin
   perform tests.as_su();
   perform tests.eq((select count(*) from public.audit_log where table_name = 'site_access' and changes ->> 'site_id' = site1::text), 2::bigint, 'granting access is on the record');
 
+  perform tests.as_user(owner1);
+  select count(*) into n from public.site_access_list(site1); perform tests.eq(n, 2::bigint, 'the Enterprise sees who has access to its site');
+  perform tests.ok((select bool_or(email = pg_temp.email_of(mgr) and role = 'manager') from public.site_access_list(site1)), 'with their email and role');
+  perform tests.as_user(owner2);
+  perform tests.throws(format('select * from public.site_access_list(%L)', site1), '%Site not found%', 'another Enterprise cannot see it');
+  perform tests.as_user(mgr);
+  perform tests.throws(format('select * from public.site_access_list(%L)', site1), '%Site not found%', 'nor can a Client');
   perform tests.as_user(viewer);
   select count(*) into n from public.sites where id = site1; perform tests.eq(n, 1::bigint, 'a viewer sees the site');
   select count(*) into n from public.jobs where id = job; perform tests.eq(n, 1::bigint, 'and its visit');

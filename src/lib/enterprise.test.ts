@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { pickEnterprise } from './enterprise.ts'
+import { readFeatures } from './features.ts'
+
+const org = (id: string, kind: 'buyer' | 'vendor', segment: string | null) => ({ id, name: id, kind, segment })
+
+test('an Enterprise is a buyer organisation in the enterprise segment', () => {
+  assert.equal(pickEnterprise([]), null)
+  assert.equal(pickEnterprise([{ org_id: 'h', role: 'owner', org: org('h', 'buyer', 'homeowner') }]), null)
+  assert.equal(pickEnterprise([{ org_id: 'v', role: 'vendor_admin', org: org('v', 'vendor', null) }]), null)
+  const e = pickEnterprise([
+    { org_id: 'h', role: 'owner', org: org('h', 'buyer', 'homeowner') },
+    { org_id: 'e', role: 'viewer', org: org('e', 'buyer', 'enterprise') },
+  ])
+  assert.deepEqual(e, { id: 'e', name: 'e', canManage: false })
+})
+
+test('an Enterprise owner or approver can manage it, a viewer cannot', () => {
+  const m = (role: 'owner' | 'approver' | 'viewer') => [{ org_id: 'e', role, org: org('e', 'buyer', 'enterprise') }]
+  assert.equal(pickEnterprise(m('owner'))?.canManage, true)
+  assert.equal(pickEnterprise(m('approver'))?.canManage, true)
+  assert.equal(pickEnterprise(m('viewer'))?.canManage, false)
+})
+
+test('feature switches fail closed and ignore unknown keys', () => {
+  assert.deepEqual(readFeatures(null), { buyer_signup: false, marketplace: false, shifts: false })
+  assert.deepEqual(readFeatures([{ key: 'marketplace', enabled: true }, { key: 'nonsense', enabled: true }]), { buyer_signup: false, marketplace: true, shifts: false })
+  assert.deepEqual(readFeatures([{ key: 'buyer_signup', enabled: true }, { key: 'marketplace', enabled: true }, { key: 'shifts', enabled: true }]), { buyer_signup: true, marketplace: true, shifts: true })
+})

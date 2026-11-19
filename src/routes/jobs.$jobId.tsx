@@ -42,7 +42,7 @@ function Job() {
         .eq('id', jobId)
         .single(),
     )
-    const [version, events, evidence, results, payments, issues, workSchedule, planDay, planResults, reworkIssue, checkMode] = await Promise.all([
+    const [version, events, evidence, results, payments, issues, workSchedule, planDay, planResults, reworkIssue, checkMode, canJudge] = await Promise.all([
       db.from('brief_versions').select('schedule').eq('brief_id', job.brief_id).eq('version', job.brief_version).single(),
       db.from('job_events').select('id, kind, at, within_geofence, data').eq('job_id', jobId).order('at'),
       db.from('evidence').select('id, area_id, kind, storage_path, within_geofence, created_at').eq('job_id', jobId).order('created_at'),
@@ -59,6 +59,8 @@ function Job() {
         : Promise.resolve({ data: null, error: null }),
       // 'plan': the schedule's areas are checked; 'photos': the schedule plans nothing today; 'standards': an older job with no schedule.
       db.rpc('job_check_mode', { p_job: jobId }),
+      // Whether this person may judge the work: the Enterprise's staff and a Client site manager can; a Client viewer only sees the record.
+      db.rpc('can_judge_job', { p_job: jobId }),
     ])
     const issueIds = must(issues).map((i) => i.id)
     const reworks = issueIds.length ? must(await db.from('jobs').select('id, status, scheduled_start, rework_of_issue').in('rework_of_issue', issueIds)) : []
@@ -76,6 +78,7 @@ function Job() {
       planResults: planResults.error ? [] : (planResults.data ?? []),
       reworkIssue: reworkIssue.error ? null : reworkIssue.data,
       mode: checkMode.error ? null : (checkMode.data as 'plan' | 'photos' | 'standards' | null),
+      canJudge: canJudge.error ? false : Boolean(canJudge.data),
       reworks: reworks as ReworkVisit[],
       me: me.user?.id,
     }
@@ -89,7 +92,7 @@ function Job() {
   if (error) return <ErrorNote message={error} />
   if (!data) return <Loading />
   const { job } = data
-  const reviewing = job.status === 'completed'
+  const reviewing = job.status === 'completed' && data.canJudge
   const verdictOf = (area: string, std: string) => data.results.find((r) => r.area_id === area && r.standard_id === std)?.verdict ?? null
   // With a work schedule that plans something for this weekday, the planned cleaning areas are what the client checks.
   const groups = data.workSchedule && data.planDay ? workForDay(parsePlan(data.workSchedule.plan), data.planDay, data.reworkIssue?.plan_item_id) : null
@@ -160,6 +163,10 @@ function Job() {
           <p className="text-ink-2">You said: {data.reworkIssue.description}</p>
           <p className="text-ink-2">There is no charge for this visit. Once the cleaner has finished, check the area: accepting it closes your report and lets the original clean be approved.</p>
         </div>
+      )}
+
+      {job.status === 'completed' && !data.canJudge && (
+        <p className="card p-4 text-sm text-ink-2">The cleaner has finished. This visit is waiting for the Enterprise's staff or the site manager to check the work.</p>
       )}
 
       <Section title="What's happened">

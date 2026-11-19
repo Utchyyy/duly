@@ -13,10 +13,14 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BusinessRouteImport } from './routes/business'
+import { Route as ClientRouteImport } from './routes/client'
 import { Route as CrewRouteImport } from './routes/crew'
+import { Route as EnterpriseRouteImport } from './routes/enterprise'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminEnterprisesRouteImport } from './routes/admin.enterprises'
+import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as AdminIssuesRouteImport } from './routes/admin.issues'
 import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
@@ -25,10 +29,14 @@ import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminVerificationRouteImport } from './routes/admin.verification'
 import { Route as AdminWorkersRouteImport } from './routes/admin.workers'
 import { Route as BriefsBriefIdRouteImport } from './routes/briefs.$briefId'
+import { Route as ClientIndexRouteImport } from './routes/client.index'
 import { Route as CrewIndexRouteImport } from './routes/crew.index'
 import { Route as CrewJobIdRouteImport } from './routes/crew.$jobId'
 import { Route as DraftsItemIdRouteImport } from './routes/drafts.$itemId'
 import { Route as DraftsNewRouteImport } from './routes/drafts.new'
+import { Route as EnterpriseIndexRouteImport } from './routes/enterprise.index'
+import { Route as EnterpriseSitesRouteImport } from './routes/enterprise.sites'
+import { Route as EnterpriseVendorsRouteImport } from './routes/enterprise.vendors'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 import { Route as ProIndexRouteImport } from './routes/pro.index'
 import { Route as ProDispatchRouteImport } from './routes/pro.dispatch'
@@ -66,9 +74,19 @@ const BusinessRoute = BusinessRouteImport.update({
   path: '/business',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientRoute = ClientRouteImport.update({
+  id: '/client',
+  path: '/client',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CrewRoute = CrewRouteImport.update({
   id: '/crew',
   path: '/crew',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnterpriseRoute = EnterpriseRouteImport.update({
+  id: '/enterprise',
+  path: '/enterprise',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -84,6 +102,16 @@ const ProRoute = ProRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEnterprisesRoute = AdminEnterprisesRouteImport.update({
+  id: '/enterprises',
+  path: '/enterprises',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFeaturesRoute = AdminFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminIssuesRoute = AdminIssuesRouteImport.update({
@@ -126,6 +154,11 @@ const BriefsBriefIdRoute = BriefsBriefIdRouteImport.update({
   path: '/briefs/$briefId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientIndexRoute = ClientIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClientRoute,
+} as any)
 const CrewIndexRoute = CrewIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -145,6 +178,21 @@ const DraftsNewRoute = DraftsNewRouteImport.update({
   id: '/drafts/new',
   path: '/drafts/new',
   getParentRoute: () => rootRouteImport,
+} as any)
+const EnterpriseIndexRoute = EnterpriseIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EnterpriseRoute,
+} as any)
+const EnterpriseSitesRoute = EnterpriseSitesRouteImport.update({
+  id: '/sites',
+  path: '/sites',
+  getParentRoute: () => EnterpriseRoute,
+} as any)
+const EnterpriseVendorsRoute = EnterpriseVendorsRouteImport.update({
+  id: '/vendors',
+  path: '/vendors',
+  getParentRoute: () => EnterpriseRoute,
 } as any)
 const JobsJobIdRoute = JobsJobIdRouteImport.update({
   id: '/jobs/$jobId',
@@ -232,9 +280,13 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
   '/business': typeof BusinessRoute
+  '/client': typeof ClientRouteWithChildren
   '/crew': typeof CrewRouteWithChildren
+  '/enterprise': typeof EnterpriseRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/pro': typeof ProRouteWithChildren
+  '/admin/enterprises': typeof AdminEnterprisesRoute
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/issues': typeof AdminIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -246,6 +298,8 @@ export interface FileRoutesByFullPath {
   '/crew/$jobId': typeof CrewJobIdRoute
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
+  '/enterprise/sites': typeof EnterpriseSitesRoute
+  '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/dispatch': typeof ProDispatchRoute
   '/pro/jobs': typeof ProJobsRoute
@@ -258,7 +312,9 @@ export interface FileRoutesByFullPath {
   '/pro/verification': typeof ProVerificationRoute
   '/sites/new': typeof SitesNewRoute
   '/admin/': typeof AdminIndexRoute
+  '/client/': typeof ClientIndexRoute
   '/crew/': typeof CrewIndexRoute
+  '/enterprise/': typeof EnterpriseIndexRoute
   '/pro/': typeof ProIndexRoute
   '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
@@ -270,6 +326,8 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/business': typeof BusinessRoute
   '/notifications': typeof NotificationsRoute
+  '/admin/enterprises': typeof AdminEnterprisesRoute
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/issues': typeof AdminIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -281,6 +339,8 @@ export interface FileRoutesByTo {
   '/crew/$jobId': typeof CrewJobIdRoute
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
+  '/enterprise/sites': typeof EnterpriseSitesRoute
+  '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/dispatch': typeof ProDispatchRoute
   '/pro/jobs': typeof ProJobsRoute
@@ -293,7 +353,9 @@ export interface FileRoutesByTo {
   '/pro/verification': typeof ProVerificationRoute
   '/sites/new': typeof SitesNewRoute
   '/admin': typeof AdminIndexRoute
+  '/client': typeof ClientIndexRoute
   '/crew': typeof CrewIndexRoute
+  '/enterprise': typeof EnterpriseIndexRoute
   '/pro': typeof ProIndexRoute
   '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
@@ -306,9 +368,13 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
   '/business': typeof BusinessRoute
+  '/client': typeof ClientRouteWithChildren
   '/crew': typeof CrewRouteWithChildren
+  '/enterprise': typeof EnterpriseRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/pro': typeof ProRouteWithChildren
+  '/admin/enterprises': typeof AdminEnterprisesRoute
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/issues': typeof AdminIssuesRoute
   '/admin/operations': typeof AdminOperationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -320,6 +386,8 @@ export interface FileRoutesById {
   '/crew/$jobId': typeof CrewJobIdRoute
   '/drafts/$itemId': typeof DraftsItemIdRoute
   '/drafts/new': typeof DraftsNewRoute
+  '/enterprise/sites': typeof EnterpriseSitesRoute
+  '/enterprise/vendors': typeof EnterpriseVendorsRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/pro/dispatch': typeof ProDispatchRoute
   '/pro/jobs': typeof ProJobsRoute
@@ -332,7 +400,9 @@ export interface FileRoutesById {
   '/pro/verification': typeof ProVerificationRoute
   '/sites/new': typeof SitesNewRoute
   '/admin/': typeof AdminIndexRoute
+  '/client/': typeof ClientIndexRoute
   '/crew/': typeof CrewIndexRoute
+  '/enterprise/': typeof EnterpriseIndexRoute
   '/pro/': typeof ProIndexRoute
   '/admin/cases/$briefId': typeof AdminCasesBriefIdRoute
   '/api/notifications/send': typeof ApiNotificationsSendRoute
@@ -346,9 +416,13 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/business'
+    | '/client'
     | '/crew'
+    | '/enterprise'
     | '/notifications'
     | '/pro'
+    | '/admin/enterprises'
+    | '/admin/features'
     | '/admin/issues'
     | '/admin/operations'
     | '/admin/payments'
@@ -360,6 +434,8 @@ export interface FileRouteTypes {
     | '/crew/$jobId'
     | '/drafts/$itemId'
     | '/drafts/new'
+    | '/enterprise/sites'
+    | '/enterprise/vendors'
     | '/jobs/$jobId'
     | '/pro/dispatch'
     | '/pro/jobs'
@@ -372,7 +448,9 @@ export interface FileRouteTypes {
     | '/pro/verification'
     | '/sites/new'
     | '/admin/'
+    | '/client/'
     | '/crew/'
+    | '/enterprise/'
     | '/pro/'
     | '/admin/cases/$briefId'
     | '/api/notifications/send'
@@ -384,6 +462,8 @@ export interface FileRouteTypes {
     | '/account'
     | '/business'
     | '/notifications'
+    | '/admin/enterprises'
+    | '/admin/features'
     | '/admin/issues'
     | '/admin/operations'
     | '/admin/payments'
@@ -395,6 +475,8 @@ export interface FileRouteTypes {
     | '/crew/$jobId'
     | '/drafts/$itemId'
     | '/drafts/new'
+    | '/enterprise/sites'
+    | '/enterprise/vendors'
     | '/jobs/$jobId'
     | '/pro/dispatch'
     | '/pro/jobs'
@@ -407,7 +489,9 @@ export interface FileRouteTypes {
     | '/pro/verification'
     | '/sites/new'
     | '/admin'
+    | '/client'
     | '/crew'
+    | '/enterprise'
     | '/pro'
     | '/admin/cases/$briefId'
     | '/api/notifications/send'
@@ -419,9 +503,13 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/business'
+    | '/client'
     | '/crew'
+    | '/enterprise'
     | '/notifications'
     | '/pro'
+    | '/admin/enterprises'
+    | '/admin/features'
     | '/admin/issues'
     | '/admin/operations'
     | '/admin/payments'
@@ -433,6 +521,8 @@ export interface FileRouteTypes {
     | '/crew/$jobId'
     | '/drafts/$itemId'
     | '/drafts/new'
+    | '/enterprise/sites'
+    | '/enterprise/vendors'
     | '/jobs/$jobId'
     | '/pro/dispatch'
     | '/pro/jobs'
@@ -445,7 +535,9 @@ export interface FileRouteTypes {
     | '/pro/verification'
     | '/sites/new'
     | '/admin/'
+    | '/client/'
     | '/crew/'
+    | '/enterprise/'
     | '/pro/'
     | '/admin/cases/$briefId'
     | '/api/notifications/send'
@@ -458,7 +550,9 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRouteWithChildren
   BusinessRoute: typeof BusinessRoute
+  ClientRoute: typeof ClientRouteWithChildren
   CrewRoute: typeof CrewRouteWithChildren
+  EnterpriseRoute: typeof EnterpriseRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
   ProRoute: typeof ProRouteWithChildren
   BriefsBriefIdRoute: typeof BriefsBriefIdRoute
@@ -499,11 +593,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/client': {
+      id: '/client'
+      path: '/client'
+      fullPath: '/client'
+      preLoaderRoute: typeof ClientRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/crew': {
       id: '/crew'
       path: '/crew'
       fullPath: '/crew'
       preLoaderRoute: typeof CrewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enterprise': {
+      id: '/enterprise'
+      path: '/enterprise'
+      fullPath: '/enterprise'
+      preLoaderRoute: typeof EnterpriseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -525,6 +633,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/enterprises': {
+      id: '/admin/enterprises'
+      path: '/enterprises'
+      fullPath: '/admin/enterprises'
+      preLoaderRoute: typeof AdminEnterprisesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/features': {
+      id: '/admin/features'
+      path: '/features'
+      fullPath: '/admin/features'
+      preLoaderRoute: typeof AdminFeaturesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/issues': {
@@ -583,6 +705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BriefsBriefIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/client/': {
+      id: '/client/'
+      path: '/'
+      fullPath: '/client/'
+      preLoaderRoute: typeof ClientIndexRouteImport
+      parentRoute: typeof ClientRoute
+    }
     '/crew/': {
       id: '/crew/'
       path: '/'
@@ -610,6 +739,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/drafts/new'
       preLoaderRoute: typeof DraftsNewRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/enterprise/': {
+      id: '/enterprise/'
+      path: '/'
+      fullPath: '/enterprise/'
+      preLoaderRoute: typeof EnterpriseIndexRouteImport
+      parentRoute: typeof EnterpriseRoute
+    }
+    '/enterprise/sites': {
+      id: '/enterprise/sites'
+      path: '/sites'
+      fullPath: '/enterprise/sites'
+      preLoaderRoute: typeof EnterpriseSitesRouteImport
+      parentRoute: typeof EnterpriseRoute
+    }
+    '/enterprise/vendors': {
+      id: '/enterprise/vendors'
+      path: '/vendors'
+      fullPath: '/enterprise/vendors'
+      preLoaderRoute: typeof EnterpriseVendorsRouteImport
+      parentRoute: typeof EnterpriseRoute
     }
     '/jobs/$jobId': {
       id: '/jobs/$jobId'
@@ -727,6 +877,8 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminEnterprisesRoute: typeof AdminEnterprisesRoute
+  AdminFeaturesRoute: typeof AdminFeaturesRoute
   AdminIssuesRoute: typeof AdminIssuesRoute
   AdminOperationsRoute: typeof AdminOperationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -740,6 +892,8 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminEnterprisesRoute: AdminEnterprisesRoute,
+  AdminFeaturesRoute: AdminFeaturesRoute,
   AdminIssuesRoute: AdminIssuesRoute,
   AdminOperationsRoute: AdminOperationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
@@ -754,6 +908,17 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ClientRouteChildren {
+  ClientIndexRoute: typeof ClientIndexRoute
+}
+
+const ClientRouteChildren: ClientRouteChildren = {
+  ClientIndexRoute: ClientIndexRoute,
+}
+
+const ClientRouteWithChildren =
+  ClientRoute._addFileChildren(ClientRouteChildren)
+
 interface CrewRouteChildren {
   CrewJobIdRoute: typeof CrewJobIdRoute
   CrewIndexRoute: typeof CrewIndexRoute
@@ -765,6 +930,22 @@ const CrewRouteChildren: CrewRouteChildren = {
 }
 
 const CrewRouteWithChildren = CrewRoute._addFileChildren(CrewRouteChildren)
+
+interface EnterpriseRouteChildren {
+  EnterpriseSitesRoute: typeof EnterpriseSitesRoute
+  EnterpriseVendorsRoute: typeof EnterpriseVendorsRoute
+  EnterpriseIndexRoute: typeof EnterpriseIndexRoute
+}
+
+const EnterpriseRouteChildren: EnterpriseRouteChildren = {
+  EnterpriseSitesRoute: EnterpriseSitesRoute,
+  EnterpriseVendorsRoute: EnterpriseVendorsRoute,
+  EnterpriseIndexRoute: EnterpriseIndexRoute,
+}
+
+const EnterpriseRouteWithChildren = EnterpriseRoute._addFileChildren(
+  EnterpriseRouteChildren,
+)
 
 interface ProRouteChildren {
   ProDispatchRoute: typeof ProDispatchRoute
@@ -801,7 +982,9 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   AdminRoute: AdminRouteWithChildren,
   BusinessRoute: BusinessRoute,
+  ClientRoute: ClientRouteWithChildren,
   CrewRoute: CrewRouteWithChildren,
+  EnterpriseRoute: EnterpriseRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
   ProRoute: ProRouteWithChildren,
   BriefsBriefIdRoute: BriefsBriefIdRoute,

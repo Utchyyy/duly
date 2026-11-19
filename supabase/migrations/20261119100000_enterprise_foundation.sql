@@ -397,6 +397,25 @@ begin
 end;
 $$;
 
+-- Who has access to a site, with their email (the Enterprise's owner or approvers, and Duly). Emails are not otherwise readable
+-- to an organisation that does not employ the person.
+create function public.site_access_list(p_site uuid)
+returns table (user_id uuid, email text, full_name text, role text, granted_at timestamptz)
+language plpgsql stable security definer set search_path = ''
+as $$
+declare v_org uuid;
+begin
+  select s.org_id into v_org from public.sites s where s.id = p_site;
+  if v_org is null or not (private.has_org_role(v_org, array['owner', 'approver']::public.member_role[]) or private.is_platform_admin()) then
+    raise exception 'Site not found';
+  end if;
+  return query
+    select sa.user_id, u.email::text, p.full_name, sa.role, sa.created_at
+      from public.site_access sa join auth.users u on u.id = sa.user_id left join public.profiles p on p.id = sa.user_id
+     where sa.site_id = p_site order by sa.created_at;
+end;
+$$;
+
 create trigger audit_site_access after insert or update or delete on public.site_access for each row execute function private.audit_row();
 
 -- A Client with access to a site sees what happens there; a manager also judges the work like the Enterprise's own staff.
@@ -579,8 +598,8 @@ revoke execute on function private.is_enterprise(uuid), private.vendor_on_roster
 grant execute on function private.is_enterprise(uuid), private.vendor_on_roster(uuid, uuid), private.vendor_allowed_for(uuid, uuid),
   private.has_site_access(uuid, text[]), private.feature_on(text) to authenticated, service_role;
 revoke execute on function public.enterprise_add_vendor(uuid, uuid, text), public.enterprise_set_vendor_status(uuid, uuid, text),
-  public.grant_site_access(uuid, text, text), public.revoke_site_access(uuid, uuid), public.can_judge_job(uuid),
+  public.grant_site_access(uuid, text, text), public.revoke_site_access(uuid, uuid), public.site_access_list(uuid), public.can_judge_job(uuid),
   public.admin_set_feature(text, boolean), public.admin_create_enterprise(text, text), public.admin_create_vendor(text, text) from public, anon;
 grant execute on function public.enterprise_add_vendor(uuid, uuid, text), public.enterprise_set_vendor_status(uuid, uuid, text),
-  public.grant_site_access(uuid, text, text), public.revoke_site_access(uuid, uuid), public.can_judge_job(uuid),
+  public.grant_site_access(uuid, text, text), public.revoke_site_access(uuid, uuid), public.site_access_list(uuid), public.can_judge_job(uuid),
   public.admin_set_feature(text, boolean), public.admin_create_enterprise(text, text), public.admin_create_vendor(text, text) to authenticated;
