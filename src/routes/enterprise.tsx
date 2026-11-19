@@ -11,6 +11,7 @@ export const Route = createFileRoute('/enterprise')({
 const nav = [
   { label: 'Overview', to: '/enterprise', exact: true },
   { label: 'Delivery', to: '/enterprise/delivery' },
+  { label: 'Reports', to: '/enterprise/reports' },
   { label: 'Vendors', to: '/enterprise/vendors' },
   { label: 'Sites and clients', to: '/enterprise/sites' },
 ]

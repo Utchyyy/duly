@@ -68,8 +68,8 @@ export function ConsoleShell({ suffix, nav, roles, children }: { suffix: string;
   // The menu names what the console does, so only people who may use it see it (not signed-out visitors or other roles).
   const showNav = hasRole(memberships, [...roles, 'platform_admin'])
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
-      <aside className="bg-pro p-5 text-pro-ink md:min-h-screen">
+    <div className="min-h-screen md:grid md:grid-cols-[240px_1fr] print:block">
+      <aside className="bg-pro p-5 text-pro-ink md:min-h-screen print:hidden">
         <div className="flex items-center justify-between">
           <Link to="/" className="inline-flex min-h-[44px] items-center">
             <Wordmark suffix={suffix} light />
