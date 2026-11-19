@@ -42,3 +42,9 @@ test('compliance rows are grouped by vendor in the order given, with what needs 
   assert.equal(claimsToReview(rows), 1)
   assert.deepEqual(groupByVendor([]), [])
 })
+
+test('every kind an Enterprise can require has a readable name', async () => {
+  const { KIND_TEXT, REQUIRABLE_KINDS } = await import('./compliance.ts')
+  for (const k of REQUIRABLE_KINDS) assert.ok(KIND_TEXT[k] && KIND_TEXT[k] !== k, k)
+  assert.equal(REQUIRABLE_KINDS.includes('dbs' as never), false)
+})
