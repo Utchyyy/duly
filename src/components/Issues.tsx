@@ -113,7 +113,7 @@ export function Issues({ jobId, issues, me, onChange, area, onArea, reworks = []
           )}
         </div>
       ))}
-      {issues.length === 0 && !open && !hideReport && <p className="text-sm text-ink-2">No problems reported. Reporting one holds the payment until it’s sorted.</p>}
+      {issues.length === 0 && !open && !hideReport && <p className="text-sm text-ink-2">No problems reported. Reporting one holds the visit until it’s sorted.</p>}
       {open && !hideReport && (
         <form id="problem-form" onSubmit={submit} className="card space-y-3 p-4">
           {area && (

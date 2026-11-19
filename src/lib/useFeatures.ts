@@ -4,6 +4,7 @@ import { readFeatures } from './features'
 import type { Features } from './features'
 import { supabase } from './supabase'
 
+const FEATURES_CHANGED = 'duly:features-changed'
 const CLOSED: Features = { buyer_signup: false, marketplace: false, shifts: false }
 
 /** Fails closed: until the switches load, or if they cannot be read, the screens behind them stay hidden. */
@@ -34,5 +35,12 @@ export function useFeatures(): { ready: boolean; features: Features; reload: () 
     }
   }, [userId, tick])
 
-  return { ready, features, reload: () => setTick((n) => n + 1) }
+  // Every screen using the switches refreshes when one is changed, so menus follow the Admin's toggle at once.
+  useEffect(() => {
+    const again = () => setTick((n) => n + 1)
+    window.addEventListener(FEATURES_CHANGED, again)
+    return () => window.removeEventListener(FEATURES_CHANGED, again)
+  }, [])
+
+  return { ready, features, reload: () => window.dispatchEvent(new Event(FEATURES_CHANGED)) }
 }

@@ -237,7 +237,7 @@ function Editor({
     <div className="space-y-6">
       <div className="card bg-tint/50 p-4 text-sm">
         Adjust the areas, minutes and standards until they match what you want done. When you lock the brief, it becomes the
-        contract: vendors price exactly this, and the cleaner is checked against these standards.
+        contract: {segment === 'enterprise' ? 'your vendor builds its work schedule around exactly this' : 'vendors price exactly this'}, and the cleaner is checked against these standards.
       </div>
       {schedule.map((sec, si) => (
         <div key={si} className="card divide-y divide-line">
@@ -333,7 +333,7 @@ function Editor({
 
       <div className="card space-y-4 p-4">
         <h2 className="text-xl">Regular visits</h2>
-        <p className="text-sm text-ink-2">Leave the days blank for a one-off clean. Pick days to have Duly book the visits for you after you accept a quote.</p>
+        <p className="text-sm text-ink-2">Leave the days blank for a one-off clean. Pick days to have Duly book the visits for you after you accept {segment === 'enterprise' ? 'a vendor’s work schedule' : 'a quote'}.</p>
         <div className="flex flex-wrap gap-2">
           {weekDays.map((d) => {
             const on = days.includes(d.code)
@@ -398,7 +398,7 @@ function Editor({
             </>
           ) : (
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => setConfirmLock(true)}>
-              Lock brief and find vendors
+              {segment === 'enterprise' ? 'Lock brief and appoint a vendor' : 'Lock brief and find vendors'}
             </button>
           )}
         </div>
