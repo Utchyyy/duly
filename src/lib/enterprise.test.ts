@@ -48,3 +48,21 @@ test('every kind an Enterprise can require has a readable name', async () => {
   for (const k of REQUIRABLE_KINDS) assert.ok(KIND_TEXT[k] && KIND_TEXT[k] !== k, k)
   assert.equal(REQUIRABLE_KINDS.includes('dbs' as never), false)
 })
+
+test('the delivery view counts what needs attention and words it plainly', async () => {
+  const { deliveryCounts, deliveryText, deliveryDates, openFor } = await import('./delivery.ts')
+  const rows = [{ attention: 'missed' }, { attention: 'late' }, { attention: 'late' }, { attention: 'awaiting_check' }, { attention: null }, { attention: 'unknown' }]
+  assert.deepEqual(deliveryCounts(rows), { missed: 1, late: 2, no_crew: 0, overrunning: 0, held: 0, awaiting_check: 1, total: 4, problems: 3 })
+  const r = { attention: 'late', late_minutes: 25, on_site_minutes: null, planned_minutes: 90, vendor_name: 'Walk Cleaners', site_name: 'Hospital' }
+  assert.equal(deliveryText(r), '25 min late: Walk Cleaners has not checked in')
+  assert.match(deliveryText({ ...r, attention: 'missed' }), /Nobody came/)
+  assert.equal(deliveryText({ ...r, attention: null }), '')
+  const today = new Date(2026, 10, 19)
+  assert.deepEqual(deliveryDates('today', today), { from: '2026-11-19', to: '2026-11-19' })
+  assert.deepEqual(deliveryDates('last7', today), { from: '2026-11-13', to: '2026-11-19' })
+  assert.deepEqual(deliveryDates('last30', today), { from: '2026-10-21', to: '2026-11-19' })
+  assert.deepEqual(deliveryDates('next7', today), { from: '2026-11-19', to: '2026-11-26' })
+  assert.equal(openFor(0), 'just now')
+  assert.equal(openFor(5), '5 h')
+  assert.equal(openFor(72), '3 days')
+})
