@@ -2,7 +2,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Gate } from '#/components/Gate'
 import { notifyChanged } from '#/components/Notifications'
-import { AppShell, Empty } from '#/components/Shells'
+import { Empty, PortalShell } from '#/components/Shells'
 import { ErrorNote, Loading } from '#/components/ui'
 import { label, must, ok, useLoad, when } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
@@ -14,11 +14,11 @@ export const Route = createFileRoute('/notifications')({
 
 function NotificationsPage() {
   return (
-    <AppShell>
+    <PortalShell>
       <Gate allowSignUp signInHeading="Sign in">
         <Inbox />
       </Gate>
-    </AppShell>
+    </PortalShell>
   )
 }
 

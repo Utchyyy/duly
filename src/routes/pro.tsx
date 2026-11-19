@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { Gate } from '#/components/Gate'
 import { ConsoleShell, Empty } from '#/components/Shells'
+import { PRO_NAV, visibleNav } from '#/lib/portal'
 import { useFeatures } from '#/lib/useFeatures'
 import { useVendor } from '#/lib/vendor'
 
@@ -9,23 +10,10 @@ export const Route = createFileRoute('/pro')({
   component: ProLayout,
 })
 
-const nav = [
-  { label: 'Today', to: '/pro', exact: true },
-  { label: 'Quote requests', to: '/pro/quotes' },
-  { label: 'Dispatch', to: '/pro/dispatch' },
-  { label: 'Jobs and crew', to: '/pro/jobs' },
-  { label: 'Performance', to: '/pro/performance' },
-  { label: 'Shifts', to: '/pro/shifts' },
-  { label: 'Profile and rates', to: '/pro/profile' },
-  { label: 'Verification', to: '/pro/verification' },
-  { label: 'Payouts', to: '/pro/payouts' },
-  { label: 'Team', to: '/pro/team' },
-]
-
 function ProLayout() {
   const { features } = useFeatures()
   // The shift exchange is hidden while that switch is off: vendors use their own staff.
-  const visible = nav.filter((n) => features.shifts || n.to !== '/pro/shifts')
+  const visible = visibleNav(PRO_NAV, features)
   return (
     <ConsoleShell suffix="Pro" nav={visible} roles={['vendor_admin', 'dispatcher']}>
       <Gate roles={['vendor_admin', 'dispatcher']} allowSignUp={false} signInHeading="Duly Pro">

@@ -1,7 +1,7 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { Gate } from '#/components/Gate'
-import { AppShell } from '#/components/Shells'
+import { PortalShell } from '#/components/Shells'
 import { Badge, ErrorNote, Field, Loading, Section } from '#/components/ui'
 import { useAuth } from '#/lib/auth'
 import type { Json } from '#/lib/database.types'
@@ -18,11 +18,11 @@ export const Route = createFileRoute('/drafts/$itemId')({
 
 function DraftPage() {
   return (
-    <AppShell>
+    <PortalShell>
       <Gate allowSignUp signInHeading="Sign in">
         <Draft />
       </Gate>
-    </AppShell>
+    </PortalShell>
   )
 }
 

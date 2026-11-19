@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AreaLinks } from '#/components/BuyerHome'
 import { Gate } from '#/components/Gate'
-import { AppShell } from '#/components/Shells'
+import { PortalShell } from '#/components/Shells'
 import { ErrorNote, Field } from '#/components/ui'
 import { useAuth } from '#/lib/auth'
 import { useLoad, must } from '#/lib/format'
@@ -16,11 +16,11 @@ export const Route = createFileRoute('/account')({
 
 function AccountPage() {
   return (
-    <AppShell>
+    <PortalShell>
       <Gate allowSignUp signInHeading="Sign in">
         <Account />
       </Gate>
-    </AppShell>
+    </PortalShell>
   )
 }
 

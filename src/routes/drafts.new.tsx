@@ -2,7 +2,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Gate } from '#/components/Gate'
-import { AppShell } from '#/components/Shells'
+import { PortalShell } from '#/components/Shells'
 import { ErrorNote, Field } from '#/components/ui'
 import { useAuth } from '#/lib/auth'
 import { LIMITS } from '#/lib/drafting/brief-draft'
@@ -17,11 +17,11 @@ export const Route = createFileRoute('/drafts/new')({
 
 function NewDraftPage() {
   return (
-    <AppShell>
+    <PortalShell>
       <Gate allowSignUp signInHeading="Sign in">
         <NewDraft />
       </Gate>
-    </AppShell>
+    </PortalShell>
   )
 }
 

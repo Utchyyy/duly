@@ -2,7 +2,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Gate } from '#/components/Gate'
 import { WorkPlanView } from '#/components/WorkPlan'
-import { AppShell, Empty } from '#/components/Shells'
+import { Empty, PortalShell } from '#/components/Shells'
 import { Badge, ErrorNote, Loading, Section } from '#/components/ui'
 import type { Json } from '#/lib/database.types'
 import { day, money, must, useLoad } from '#/lib/format'
@@ -19,11 +19,11 @@ export const Route = createFileRoute('/briefs/$briefId')({
 
 function BriefPage() {
   return (
-    <AppShell wide>
+    <PortalShell wide>
       <Gate allowSignUp signInHeading="Sign in">
         <Brief />
       </Gate>
-    </AppShell>
+    </PortalShell>
   )
 }
 

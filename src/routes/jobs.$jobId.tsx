@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { PhotoStrip, useSignedUrls } from '#/components/Evidence'
 import type { EvidenceRow } from '#/components/Evidence'
 import { Gate } from '#/components/Gate'
-import { AppShell } from '#/components/Shells'
+import { PortalShell } from '#/components/Shells'
 import { Issues } from '#/components/Issues'
 import type { IssueArea, ReworkVisit } from '#/components/Issues'
 import { WorkPlanView } from '#/components/WorkPlan'
@@ -21,11 +21,11 @@ export const Route = createFileRoute('/jobs/$jobId')({
 
 function JobPage() {
   return (
-    <AppShell wide>
+    <PortalShell wide>
       <Gate allowSignUp signInHeading="Sign in">
         <Job />
       </Gate>
-    </AppShell>
+    </PortalShell>
   )
 }
 

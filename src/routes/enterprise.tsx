@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { Gate } from '#/components/Gate'
 import { ConsoleShell, Empty } from '#/components/Shells'
+import { ENTERPRISE_NAV } from '#/lib/portal'
 import { useEnterprise } from '#/lib/useEnterprise'
 
 export const Route = createFileRoute('/enterprise')({
@@ -8,17 +9,9 @@ export const Route = createFileRoute('/enterprise')({
   component: EnterpriseLayout,
 })
 
-const nav = [
-  { label: 'Overview', to: '/enterprise', exact: true },
-  { label: 'Delivery', to: '/enterprise/delivery' },
-  { label: 'Reports', to: '/enterprise/reports' },
-  { label: 'Vendors', to: '/enterprise/vendors' },
-  { label: 'Sites and clients', to: '/enterprise/sites' },
-]
-
 function EnterpriseLayout() {
   return (
-    <ConsoleShell suffix="Enterprise" nav={nav} roles={['owner', 'approver', 'viewer']}>
+    <ConsoleShell suffix="Enterprise" nav={ENTERPRISE_NAV} roles={['owner', 'approver', 'viewer']}>
       <Gate roles={['owner', 'approver', 'viewer']} allowSignUp={false} signInHeading="Duly Enterprise">
         <EnterpriseOnly />
       </Gate>

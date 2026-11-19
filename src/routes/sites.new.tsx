@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Gate } from '#/components/Gate'
-import { AppShell } from '#/components/Shells'
+import { PortalShell } from '#/components/Shells'
 import { ErrorNote, Field, Loading } from '#/components/ui'
 import { useAuth } from '#/lib/auth'
 import type { Json } from '#/lib/database.types'
@@ -18,11 +18,11 @@ export const Route = createFileRoute('/sites/new')({
 
 function NewSitePage() {
   return (
-    <AppShell wide>
+    <PortalShell wide>
       <Gate allowSignUp signInHeading="Sign in">
         <NewSite />
       </Gate>
-    </AppShell>
+    </PortalShell>
   )
 }
 

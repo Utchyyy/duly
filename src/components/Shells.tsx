@@ -1,7 +1,12 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { hasRole, useAuth } from '#/lib/auth'
 import type { Role } from '#/lib/auth'
+import { ADMIN_NAV, ENTERPRISE_NAV, PRO_NAV, activeNav, portalFor, visibleNav } from '#/lib/portal'
+import type { NavItem } from '#/lib/portal'
+import { useEnterprise } from '#/lib/useEnterprise'
+import { useFeatures } from '#/lib/useFeatures'
 import { NotificationBell } from './Notifications'
 
 function Wordmark({ suffix, light }: { suffix?: string; light?: boolean }) {
@@ -60,13 +65,22 @@ export function AppShell({ suffix, children, wide }: { suffix?: string; children
   )
 }
 
-export type NavItem = { label: string; to: string; exact?: boolean }
-
-/** Duly Pro and Duly Admin: desktop console, 1440px design width, dark sidebar. */
+/**
+ * Duly Enterprise, Pro and Admin: a console with a dark sidebar at 1440px. On a small screen the sidebar becomes a bar with a Menu button that
+ * names the page you are on and opens the full list, so a long menu is never hidden off the side of the screen.
+ */
 export function ConsoleShell({ suffix, nav, roles, children }: { suffix: string; nav: NavItem[]; roles: Role[]; children: ReactNode }) {
   const { memberships } = useAuth()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const [open, setOpen] = useState(false)
   // The menu names what the console does, so only people who may use it see it (not signed-out visitors or other roles).
   const showNav = hasRole(memberships, [...roles, 'platform_admin'])
+  const items = showNav ? nav : []
+  const here = activeNav(items, pathname)
+  // Following a link closes the menu.
+  useEffect(() => {
+    setOpen(false)
+  }, [pathname])
   return (
     <div className="min-h-screen md:grid md:grid-cols-[240px_1fr] print:block">
       <aside className="bg-pro p-5 text-pro-ink md:min-h-screen print:hidden">
@@ -78,8 +92,20 @@ export function ConsoleShell({ suffix, nav, roles, children }: { suffix: string;
             <AccountButton light />
           </div>
         </div>
-        <nav className="mt-6 flex gap-1 overflow-x-auto md:mt-8 md:flex-col">
-          {(showNav ? nav : []).map((item) => (
+        {items.length > 0 && (
+          <button
+            type="button"
+            className="mt-3 flex min-h-[44px] w-full items-center justify-between rounded-lg bg-white/10 px-3 text-sm font-semibold text-white md:hidden"
+            aria-expanded={open}
+            aria-controls="console-menu"
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span>{here ? here.label : 'Menu'}</span>
+            <span aria-hidden="true">{open ? 'Close ▴' : 'Menu ▾'}</span>
+          </button>
+        )}
+        <nav id="console-menu" aria-label={`${suffix} menu`} className={`${open ? 'flex' : 'hidden'} mt-2 flex-col gap-1 md:mt-8 md:flex`}>
+          {items.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -101,6 +127,48 @@ export function ConsoleShell({ suffix, nav, roles, children }: { suffix: string;
       </main>
     </div>
   )
+}
+
+/**
+ * For pages several kinds of person share (a visit, a brief, notifications, account): the console of whoever is looking, with its menu, so
+ * following a link from Delivery or Dispatch never drops anyone out of their own portal. Duly staff get Admin, an Enterprise's members get
+ * Enterprise, a vendor's staff get Pro, a Client gets the sites view and any other buyer the buyer app. Signed out, it is the plain page.
+ */
+export function PortalShell({ children, wide }: { children: ReactNode; wide?: boolean }) {
+  const { ready, session, memberships } = useAuth()
+  const enterprise = useEnterprise()
+  const { features } = useFeatures()
+  if (!ready || !session) return <AppShell wide={wide}>{children}</AppShell>
+  const kind = portalFor(
+    memberships.map((m) => m.role),
+    enterprise !== null,
+  )
+  const body = <div className={wide ? 'max-w-5xl' : 'max-w-2xl'}>{children}</div>
+  if (kind === 'admin')
+    return (
+      <ConsoleShell suffix="Admin" nav={visibleNav(ADMIN_NAV, features)} roles={['platform_admin']}>
+        {body}
+      </ConsoleShell>
+    )
+  if (kind === 'enterprise')
+    return (
+      <ConsoleShell suffix="Enterprise" nav={ENTERPRISE_NAV} roles={['owner', 'approver', 'viewer']}>
+        {body}
+      </ConsoleShell>
+    )
+  if (kind === 'pro')
+    return (
+      <ConsoleShell suffix="Pro" nav={visibleNav(PRO_NAV, features)} roles={['vendor_admin', 'dispatcher']}>
+        {body}
+      </ConsoleShell>
+    )
+  if (kind === 'client')
+    return (
+      <AppShell suffix="Sites" wide>
+        {children}
+      </AppShell>
+    )
+  return <AppShell wide={wide}>{children}</AppShell>
 }
 
 export function Stat({ label, value, note }: { label: string; value: ReactNode; note?: string }) {

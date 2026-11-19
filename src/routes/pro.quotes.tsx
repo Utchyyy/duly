@@ -23,7 +23,7 @@ function ProQuotes() {
     const briefIds = Array.from(new Set(quotes.map((q) => q.brief_id)))
     const [briefs, versions] = await Promise.all([
       briefIds.length
-        ? db.from('briefs').select('id, title, site:sites(name, town, postcode)').in('id', briefIds)
+        ? db.from('briefs').select('id, title, buyer:organisations!briefs_buyer_org_id_fkey(name, segment), site:sites(name, town, postcode)').in('id', briefIds)
         : Promise.resolve({ data: [], error: null }),
       briefIds.length
         ? db.from('brief_versions').select('brief_id, version, schedule').in('brief_id', briefIds)
@@ -50,9 +50,10 @@ function ProQuotes() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl">Quote requests</h1>
-      <p className="text-sm text-ink-2">
-        Duly prices each brief from its areas and minutes at your hourly rate, so every client sees the same basis. Submit to send
-        the price, or decline if you can't take it on.
+      <p className="max-w-2xl text-ink-2">
+        Work your Enterprises and clients have asked you to take on. For an Enterprise there is no price on Duly: build a work schedule, send it, and
+        the Enterprise accepts it to start the visits. For any other client Duly prices the brief from its areas and minutes at your hourly rate, so
+        every client sees the same basis.
       </p>
       <ErrorNote message={actionError} />
       {data.quotes.length === 0 ? (
@@ -63,12 +64,14 @@ function ProQuotes() {
             const b = data.briefs.find((x) => x.id === q.brief_id)
             const v = data.versions.find((x) => x.brief_id === q.brief_id && x.version === q.brief_version)
             const sched = parseSchedule(v?.schedule)
+            const enterprise = b?.buyer?.segment === 'enterprise'
             return (
               <div key={q.id} className="card space-y-3 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold">{b?.title}</p>
                     <p className="text-sm text-ink-2">
+                      {b?.buyer?.name ? `${b.buyer.name} · ` : ''}
                       {b?.site?.name}, {b?.site?.town} {b?.site?.postcode} · v{q.brief_version} · asked {day(q.created_at)}
                     </p>
                   </div>
@@ -97,7 +100,7 @@ function ProQuotes() {
                 {(q.status === 'invited' || q.status === 'submitted') && (
                   <div className="flex flex-wrap gap-2">
                     <button className="btn btn-primary" disabled={busy === q.id} onClick={() => void act(q.id, 'submit_quote')}>
-                      {q.status === 'invited' ? 'Submit quote' : 'Re-price and resubmit'}
+                      {enterprise ? (q.status === 'invited' ? 'Send to the Enterprise' : 'Send again') : q.status === 'invited' ? 'Submit quote' : 'Re-price and resubmit'}
                     </button>
                     <button className="btn btn-ghost" disabled={busy === q.id} onClick={() => void act(q.id, 'decline_quote')}>
                       {q.status === 'invited' ? 'Decline' : 'Withdraw'}

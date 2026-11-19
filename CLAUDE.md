@@ -47,6 +47,9 @@ Notifications: created only in SQL (triggers on quotes, jobs, assignments, issue
 
 Crew offline: `public/crew-sw.js` (scope `/crew`) caches only the app's static files and the Crew page shell, never data, and never anything cross-origin or non-GET. Check-in, ticking and completing need a connection because the database records their time and place as "now". Photos taken without one are kept in IndexedDB (`src/lib/crew/outbox.ts`) with their original time and place and sent when the signal returns; `evidence.storage_path` is unique so a resend cannot duplicate. A failed load is never shown as "no jobs" or "no access" (`loadFailed` in `useAuth`).
 
+
+Portals and navigation: `src/lib/portal.ts` (pure, tested) holds each console's menu (`ENTERPRISE_NAV`, `PRO_NAV`, `ADMIN_NAV`, with `visibleNav` hiding items behind a switch that is off), `portalFor` (which console a person's roles belong in) and `homeFor` (where `/` sends them: admin, Enterprise, Pro, Crew, Client site view; only a homeowner or business buyer stays on `/`). Pages several kinds of person share (visit, brief, notifications, account, drafts, new site) use `PortalShell`, which wraps them in the looker's own console so no link drops anyone out of their portal. On a small screen a console's menu is one button naming the current page that opens the full list and closes on navigation. The signed-out front page shows the sign-in beside the promise and three entrances (Enterprise, Pro, Your sites).
+
 ## Auth
 Email one-time code (Supabase OTP). Buyers and operatives can sign up; vendor staff and admins are invite-only (`shouldCreateUser: false`). Roles come from `memberships`.
 
