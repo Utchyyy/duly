@@ -6,13 +6,14 @@ do $$
 declare
   admin_u uuid := tests.mk_user('admin'); owner1 uuid := tests.mk_user('ent1-owner'); owner2 uuid := tests.mk_user('ent2-owner');
   vend_u uuid := tests.mk_user('vendor-admin'); stranger uuid := tests.mk_user('stranger'); approver uuid := tests.mk_user('ent1-approver'); staff uuid := tests.mk_user('ent1-staff');
-  duly_org uuid; ent1 uuid; ent2 uuid; vend uuid; vend2 uuid; ch uuid; pli uuid; ch_old uuid; r record; n bigint;
+  ent3 uuid; duly_org uuid; ent1 uuid; ent2 uuid; vend uuid; vend2 uuid; ch uuid; pli uuid; ch_old uuid; r record; n bigint;
 begin
   select id into duly_org from public.organisations where kind = 'platform';
   insert into public.memberships values (duly_org, admin_u, 'platform_admin');
   perform tests.as_user(admin_u);
   ent1 := public.admin_create_enterprise('Soft FM One', pg_temp.email_of(owner1));
   ent2 := public.admin_create_enterprise('Soft FM Two', pg_temp.email_of(owner2));
+  ent3 := public.admin_create_enterprise('Soft FM Three', pg_temp.email_of(owner2));
   vend := public.admin_create_vendor('Vendor Co', pg_temp.email_of(vend_u));
   vend2 := public.admin_create_vendor('Second Vendor Co', pg_temp.email_of(vend_u));
   perform public.enterprise_add_vendor(ent1, vend); perform public.enterprise_add_vendor(ent1, vend2);
@@ -84,6 +85,16 @@ begin
   perform tests.throws(format('insert into public.enterprise_claim_reviews (enterprise_org_id, claim_id, decision) values (%L, %L, ''accepted'')', ent1, pli), '%row-level security%', 'a vendor cannot write a decision for itself');
   perform tests.as_user(owner1);
   perform tests.throws(format('insert into public.enterprise_claim_reviews (enterprise_org_id, claim_id, decision) values (%L, %L, ''accepted'')', ent1, pli), '%row-level security%', 'nor can the Enterprise write directly: the function does');
+
+  -- A vendor can name the Enterprises that list it, and no others.
+  perform tests.as_user(vend_u);
+  perform tests.ok((select count(*) from public.organisations where name = 'Soft FM One') = 1, 'a vendor can read the name of an Enterprise that lists it');
+  perform tests.ok((select count(*) from public.organisations where name = 'Soft FM Three') = 0, 'but not one that does not');
+  perform tests.ok((select count(*) from public.organisations where name = 'Soft FM One' and market is not null) = 1, 'and that is an ordinary organisation row, read-only');
+  update public.organisations set name = 'Renamed' where id = ent1;
+  perform tests.as_su();
+  perform tests.eq((select name from public.organisations where id = ent1), 'Soft FM One', 'a vendor cannot rename it');
+  perform tests.as_user(vend_u);
 
   -- A change to the claim clears the decision.
   perform tests.as_user(vend_u);

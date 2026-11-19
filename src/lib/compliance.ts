@@ -28,6 +28,15 @@ export type VendorCompliance = {
 /** Company claims an Enterprise may require. DBS and right to work are checked per person. */
 export const REQUIRABLE_KINDS = ['companies_house', 'public_liability_insurance', 'iso_9001', 'chas', 'safecontractor', 'other'] as const
 
+export const KIND_TEXT: Record<string, string> = {
+  companies_house: 'Companies House registration',
+  public_liability_insurance: 'Public liability insurance',
+  iso_9001: 'ISO 9001',
+  chas: 'CHAS',
+  safecontractor: 'SafeContractor',
+  other: 'Other',
+}
+
 export const STATE_TEXT: Record<string, string> = {
   accepted: 'Accepted',
   awaiting: 'Waiting for your review',

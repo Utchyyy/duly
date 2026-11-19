@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Badge, ErrorNote, Section } from '#/components/ui'
-import { groupByVendor, REQUIRABLE_KINDS, STATE_TEXT } from '#/lib/compliance'
+import { groupByVendor, KIND_TEXT, REQUIRABLE_KINDS, STATE_TEXT } from '#/lib/compliance'
 import type { ComplianceRow } from '#/lib/compliance'
 import type { Database } from '#/lib/database.types'
-import { day, label } from '#/lib/format'
+import { day } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
 
 type ClaimKind = Database['public']['Enums']['claim_kind']
@@ -51,7 +51,7 @@ export function VendorCompliance({ enterpriseId, canManage, required, rows, onCh
             <ul className="flex flex-wrap gap-2">
               {required.map((k) => (
                 <li key={k} className="rounded-full bg-tint px-3 py-1 text-sm font-medium text-primary">
-                  {label(k)}
+                  {KIND_TEXT[k] ?? k}
                 </li>
               ))}
             </ul>
@@ -69,7 +69,7 @@ export function VendorCompliance({ enterpriseId, canManage, required, rows, onCh
             {REQUIRABLE_KINDS.map((k) => (
               <label key={k} className="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm">
                 <input type="checkbox" className="size-5 accent-[var(--color-primary)]" checked={picked.includes(k)} onChange={(e) => setPicked((p) => (e.target.checked ? [...p, k] : p.filter((x) => x !== k)))} />
-                {label(k)}
+                {KIND_TEXT[k] ?? k}
               </label>
             ))}
           </fieldset>
@@ -102,7 +102,7 @@ export function VendorCompliance({ enterpriseId, canManage, required, rows, onCh
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-medium">
-                          {label(r.kind)}
+                          {KIND_TEXT[r.kind] ?? r.kind}
                           {r.reference ? ` · ${r.reference}` : ''}
                         </p>
                         <p className="text-ink-2">
@@ -125,7 +125,7 @@ export function VendorCompliance({ enterpriseId, canManage, required, rows, onCh
                         )}
                       </div>
                     </div>
-                    {rejecting === r.claim_id && (
+                    {rejecting !== null && rejecting === r.claim_id && (
                       <div className="flex flex-wrap items-end gap-2">
                         <div className="min-w-[14rem] flex-1">
                           <label className="block text-sm font-medium" htmlFor={`reason-${r.claim_id}`}>
