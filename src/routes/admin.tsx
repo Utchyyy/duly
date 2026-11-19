@@ -19,6 +19,7 @@ const nav = [
   { label: 'Enterprises', to: '/admin/enterprises' },
   { label: 'Organisations and people', to: '/admin/people' },
   { label: 'Markets and policies', to: '/admin/policies' },
+  { label: 'Data retention', to: '/admin/retention' },
   { label: 'Feature switches', to: '/admin/features' },
 ]
 

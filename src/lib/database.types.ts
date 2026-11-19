@@ -111,6 +111,72 @@ export type Database = {
           { foreignKeyName: "enterprise_sla_snapshots_enterprise_org_id_fkey"; columns: ["enterprise_org_id"]; isOneToOne: false; referencedRelation: "organisations"; referencedColumns: ["id"] },
         ]
       }
+      data_retention_rules: {
+        Row: {
+          action: string
+          basis: string
+          description: string
+          enabled: boolean
+          id: string
+          key: string
+          months: number
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          action: string
+          basis?: string
+          description: string
+          enabled?: boolean
+          id?: string
+          key: string
+          months: number
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          action?: string
+          basis?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          key?: string
+          months?: number
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      data_retention_runs: {
+        Row: {
+          action: string
+          id: number
+          note: string | null
+          ran_at: string
+          rows_affected: number
+          rule_key: string
+        }
+        Insert: {
+          action: string
+          id?: number
+          note?: string | null
+          ran_at?: string
+          rows_affected: number
+          rule_key: string
+        }
+        Update: {
+          action?: string
+          id?: number
+          note?: string | null
+          ran_at?: string
+          rows_affected?: number
+          rule_key?: string
+        }
+        Relationships: []
+      }
       enterprise_sla_targets: {
         Row: {
           enterprise_org_id: string
@@ -2226,6 +2292,22 @@ export type Database = {
         Args: { p_enterprise: string; p_month: string }
         Returns: { month: string; taken_at: string; source: string; pack: Json; exceptions: Json }[]
       }
+      admin_retention_report: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          key: string
+          title: string
+          description: string
+          action: string
+          months: number
+          enabled: boolean
+          basis: string
+          due_now: number
+          last_run_at: string | null
+          last_rows: number | null
+        }[]
+      }
+      admin_set_retention_rule: { Args: { p_key: string; p_months: number; p_enabled: boolean }; Returns: undefined }
       enterprise_set_sla_targets: { Args: { p_enterprise: string; p_on_time: number | null; p_evidenced: number | null; p_max_complaints: number | null }; Returns: undefined }
       enterprise_sla_pack: {
         Args: { p_enterprise: string; p_month: string }
