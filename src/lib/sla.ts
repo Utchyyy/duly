@@ -78,16 +78,21 @@ const line = (cells: (string | number | boolean | null | undefined)[]) => cells.
 const percent = (r: number | null) => (r == null ? null : Math.round(r * 1000) / 10)
 const met = (m: boolean | null) => (m == null ? '' : m ? 'Met' : 'Not met')
 
+/** What a set of figures rests on, for the file: the day a month was frozen, or the moment live figures were read. */
+export function csvBasis(frozenAt: string | null, now = new Date()): string {
+  return frozenAt ? `Frozen ${frozenAt.slice(0, 10)}` : `Live ${now.toISOString().slice(0, 16).replace('T', ' ')} UTC`
+}
+
 /** The pack as a spreadsheet: one line per vendor and per vendor and site. */
-export function packCsv(month: string, enterprise: string, rows: PackRow[]): string {
+export function packCsv(month: string, enterprise: string, rows: PackRow[], basis: string): string {
   const head = [
-    'Month', 'Enterprise', 'Vendor', 'Site', 'Level', 'Visits scheduled', 'Visits due', 'Checked in', 'Evidenced', 'Evidenced %', 'On time', 'On time %',
+    'Month', 'Basis', 'Enterprise', 'Vendor', 'Site', 'Level', 'Visits scheduled', 'Visits due', 'Checked in', 'Evidenced', 'Evidenced %', 'On time', 'On time %',
     'Late', 'Missed', 'Average minutes after the start', 'Planned areas ticked %', 'Right first time %', 'Complaints', 'Complaints per 100 visits',
     'Open complaints', 'Past response time', 'On-time level %', 'On-time result', 'Evidenced level %', 'Evidenced result', 'Most complaints per 100', 'Complaints result',
   ]
   const body = rows.map((r) =>
     line([
-      monthLabel(month), enterprise, r.vendor_name, r.is_vendor_total ? 'All sites' : r.site_name, r.is_vendor_total ? 'Vendor' : 'Site',
+      monthLabel(month), basis, enterprise, r.vendor_name, r.is_vendor_total ? 'All sites' : r.site_name, r.is_vendor_total ? 'Vendor' : 'Site',
       r.scheduled_visits, r.due_visits, r.checked_in_visits, r.evidenced_visits, percent(r.evidenced_rate), r.on_time_visits, percent(r.on_time_rate),
       r.late_visits, r.missed_visits, r.avg_late_minutes, percent(r.plan_followed_rate), percent(r.first_time_right_rate), r.complaints, r.complaints_per_100,
       r.open_complaints, r.sla_breaches, percent(r.on_time_target), met(r.on_time_met), percent(r.evidenced_target), met(r.evidenced_met), r.max_complaints_per_100, met(r.complaints_met),
@@ -97,16 +102,16 @@ export function packCsv(month: string, enterprise: string, rows: PackRow[]): str
 }
 
 /** The visits behind the numbers as a spreadsheet. */
-export function exceptionsCsv(month: string, enterprise: string, rows: ExceptionRow[]): string {
-  const head = ['Month', 'Enterprise', 'Vendor', 'Site', 'Visit starts', 'Status', 'Missed', 'Minutes after the start', 'Complaints', 'Open complaints', 'Past response time', 'Kinds of complaint']
+export function exceptionsCsv(month: string, enterprise: string, rows: ExceptionRow[], basis: string): string {
+  const head = ['Month', 'Basis', 'Enterprise', 'Vendor', 'Site', 'Visit starts', 'Status', 'Missed', 'Minutes after the start', 'Complaints', 'Open complaints', 'Past response time', 'Kinds of complaint']
   const body = rows.map((r) =>
-    line([monthLabel(month), enterprise, r.vendor_name, r.site_name, r.scheduled_start, r.status, r.missed, r.late_minutes, r.complaints, r.open_complaints, r.sla_breached, r.complaint_kinds]),
+    line([monthLabel(month), basis, enterprise, r.vendor_name, r.site_name, r.scheduled_start, r.status, r.missed, r.late_minutes, r.complaints, r.open_complaints, r.sla_breached, r.complaint_kinds]),
   )
   return '﻿' + [line(head), ...body].join('\r\n') + '\r\n'
 }
 
 /** A file name for the download. */
-export function packFileName(kind: 'pack' | 'visits', enterprise: string, month: string): string {
+export function packFileName(kind: 'pack' | 'visits', enterprise: string, month: string, frozen: boolean): string {
   const slug = enterprise.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'enterprise'
-  return `duly-sla-${kind}-${slug}-${month.slice(0, 7)}.csv`
+  return `duly-sla-${kind}-${slug}-${month.slice(0, 7)}${frozen ? '-frozen' : '-live'}.csv`
 }

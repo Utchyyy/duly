@@ -12,6 +12,7 @@ export type ComplianceRow = {
   duly_status: string | null
   reviewed_at: string | null
   note: string | null
+  evidence_path: string | null
 }
 
 export type VendorCompliance = {

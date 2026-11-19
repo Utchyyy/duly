@@ -5,7 +5,7 @@ import { Empty } from '#/components/Shells'
 import { Badge, ErrorNote, Field, Loading, Section } from '#/components/ui'
 import { label, must, useLoad, when } from '#/lib/format'
 import { pct } from '#/lib/measures'
-import { exceptionsCsv, monthLabel, packCsv, packFileName, shiftMonth, thisMonth } from '#/lib/sla'
+import { csvBasis, exceptionsCsv, monthLabel, packCsv, packFileName, shiftMonth, thisMonth } from '#/lib/sla'
 import type { ExceptionRow, PackRow } from '#/lib/sla'
 import { supabase } from '#/lib/supabase'
 import { useEnterprise } from '#/lib/useEnterprise'
@@ -25,23 +25,54 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour:
 
 function EnterpriseReports() {
   const enterprise = useEnterprise()!
-  const [month, setMonth] = useState(thisMonth())
+  const [month, setMonthState] = useState(thisMonth())
+  const [view, setView] = useState<'frozen' | 'live'>('frozen')
+  const [busy, setBusy] = useState(false)
+  const [freezeError, setFreezeError] = useState<string | null>(null)
   const now = thisMonth()
+  const closed = month < now
+  const setMonth = (m: string) => {
+    setMonthState(m)
+    setView('frozen')
+    setFreezeError(null)
+  }
   const { data, error, reload } = useLoad(async () => {
     const db = supabase()
-    const [pack, exceptions, targets] = await Promise.all([
+    const [pack, exceptions, targets, snapshot] = await Promise.all([
       db.rpc('enterprise_sla_pack', { p_enterprise: enterprise.id, p_month: month }),
       db.rpc('enterprise_sla_exceptions', { p_enterprise: enterprise.id, p_month: month }),
       db.from('enterprise_sla_targets').select('on_time_rate, evidenced_rate, max_complaints_per_100').eq('enterprise_org_id', enterprise.id).maybeSingle(),
+      closed ? db.rpc('enterprise_sla_snapshot', { p_enterprise: enterprise.id, p_month: month }) : Promise.resolve({ data: [], error: null }),
     ])
-    return { pack: must(pack) as PackRow[], exceptions: must(exceptions) as ExceptionRow[], targets: targets.error ? null : targets.data }
+    const frozen = must(snapshot)[0] ?? null
+    return {
+      pack: must(pack) as PackRow[],
+      exceptions: must(exceptions) as ExceptionRow[],
+      targets: targets.error ? null : targets.data,
+      frozen: frozen ? { takenAt: frozen.taken_at, source: frozen.source, pack: frozen.pack as unknown as PackRow[], exceptions: frozen.exceptions as unknown as ExceptionRow[] } : null,
+    }
   }, [enterprise.id, month])
+
+  async function freezeNow() {
+    setBusy(true)
+    setFreezeError(null)
+    const { error: err } = await supabase().rpc('enterprise_freeze_sla_month', { p_enterprise: enterprise.id, p_month: month })
+    setBusy(false)
+    if (err) return setFreezeError(err.message)
+    setView('frozen')
+    reload()
+  }
 
   if (error && !data) return <ErrorNote message={error} />
   if (!data) return <Loading />
 
-  const vendors = data.pack.filter((r) => r.is_vendor_total)
-  const sitesOf = (name: string) => data.pack.filter((r) => !r.is_vendor_total && r.vendor_name === name)
+  // A closed month that has been frozen shows the frozen figures unless the person asks for today's. Nothing is worked out here.
+  const useFrozen = !!data.frozen && view === 'frozen'
+  const pack = useFrozen ? data.frozen!.pack : data.pack
+  const exceptions = useFrozen ? data.frozen!.exceptions : data.exceptions
+  const basis = csvBasis(useFrozen ? data.frozen!.takenAt : null)
+  const vendors = pack.filter((r) => r.is_vendor_total)
+  const sitesOf = (name: string) => pack.filter((r) => !r.is_vendor_total && r.vendor_name === name)
   const partial = month === now
 
   return (
@@ -59,21 +90,54 @@ function EnterpriseReports() {
             ← Previous
           </button>
           <span className="min-w-[8.5rem] text-center font-semibold">{monthLabel(month)}</span>
+          {data.frozen && <Badge value="accepted">Frozen</Badge>}
           <button className="btn btn-ghost text-sm" disabled={month >= now} onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month">
             Next →
           </button>
         </div>
       </div>
       <p className="hidden print:block">
-        {enterprise.name} · {monthLabel(month)}
+        {enterprise.name} · {monthLabel(month)} · {useFrozen ? `frozen ${new Date(data.frozen!.takenAt).toLocaleDateString('en-GB')}` : 'live figures'}
       </p>
-      {partial && <p className="rounded-lg bg-tint p-3 text-sm print:border print:border-line">This month is not over, so the pack is partial: it counts the visits that have come due so far.</p>}
+      {partial && <p className="rounded-lg bg-tint p-3 text-sm print:border print:border-line">This month is not over, so the pack is partial: it counts the visits that have come due so far. It freezes once the month has closed and its complaint window has passed.</p>}
+      {closed && data.frozen && useFrozen && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-tint p-3 text-sm print:border print:border-line">
+          <p>
+            <span className="font-semibold">Frozen on {when(data.frozen.takenAt)}</span>
+            {data.frozen.source === 'auto' ? ', automatically, once the complaint window had passed.' : ', by your team.'} These figures will not change.
+          </p>
+          <button className="btn btn-ghost text-sm print:hidden" onClick={() => setView('live')}>
+            See today&apos;s live figures
+          </button>
+        </div>
+      )}
+      {closed && data.frozen && !useFrozen && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-alert-bg p-3 text-sm text-alert print:border print:border-line">
+          <p>
+            <span className="font-semibold">Live figures, as of now.</span> They can differ from the month as it was frozen on {when(data.frozen.takenAt)} if complaints or approvals came in later.
+          </p>
+          <button className="btn btn-ghost text-sm print:hidden" onClick={() => setView('frozen')}>
+            Back to the frozen month
+          </button>
+        </div>
+      )}
+      {closed && !data.frozen && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-tint p-3 text-sm print:border print:border-line">
+          <p>This month is closed but not frozen yet, so these are live figures. It freezes by itself once its complaint window has passed.</p>
+          {enterprise.canManage && pack.length > 0 && (
+            <button className="btn btn-primary text-sm print:hidden" disabled={busy} onClick={() => void freezeNow()}>
+              Freeze this month now
+            </button>
+          )}
+        </div>
+      )}
+      <ErrorNote message={freezeError} />
 
       <div className="flex flex-wrap gap-2 print:hidden">
-        <button className="btn btn-primary" disabled={data.pack.length === 0} onClick={() => download(packFileName('pack', enterprise.name, month), packCsv(month, enterprise.name, data.pack))}>
+        <button className="btn btn-primary" disabled={pack.length === 0} onClick={() => download(packFileName('pack', enterprise.name, month, useFrozen), packCsv(month, enterprise.name, pack, basis))}>
           Download the pack (CSV)
         </button>
-        <button className="btn btn-ghost" disabled={data.exceptions.length === 0} onClick={() => download(packFileName('visits', enterprise.name, month), exceptionsCsv(month, enterprise.name, data.exceptions))}>
+        <button className="btn btn-ghost" disabled={exceptions.length === 0} onClick={() => download(packFileName('visits', enterprise.name, month, useFrozen), exceptionsCsv(month, enterprise.name, exceptions, basis))}>
           Download the visits behind it (CSV)
         </button>
         <button className="btn btn-ghost" onClick={() => window.print()}>
@@ -105,11 +169,11 @@ function EnterpriseReports() {
         </div>
       )}
 
-      {data.exceptions.length > 0 && (
+      {exceptions.length > 0 && (
         <Section title="The visits behind the numbers">
           <p className="text-sm text-ink-2">Every visit this month that was missed, late, or complained about.</p>
           <ul className="space-y-2">
-            {data.exceptions.map((x) => (
+            {exceptions.map((x) => (
               <li key={`${x.vendor_name}-${x.site_name}-${x.scheduled_start}`} className="card space-y-1 p-4 text-sm print:break-inside-avoid">
                 <p className="font-semibold">
                   {when(x.scheduled_start)} – {x.vendor_name} · {x.site_name}
@@ -130,7 +194,7 @@ function EnterpriseReports() {
           </ul>
         </Section>
       )}
-      <p className="hidden text-xs text-ink-2 print:block">Produced by Duly from the visit record on {new Date().toLocaleDateString('en-GB')} {clock(new Date().toISOString())}.</p>
+      <p className="hidden text-xs text-ink-2 print:block">Produced by Duly from the visit record ({useFrozen ? 'frozen month' : 'live figures'}) on {new Date().toLocaleDateString('en-GB')} {clock(new Date().toISOString())}.</p>
     </div>
   )
 }

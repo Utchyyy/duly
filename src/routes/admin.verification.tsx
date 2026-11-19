@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
+import { ClaimDocument } from '#/components/ClaimDocument'
 import { Badge, ErrorNote, Loading } from '#/components/ui'
 import { day, label, must, useLoad } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
@@ -13,7 +14,7 @@ function AdminVerification() {
     const db = supabase()
     const [vendors, claims] = await Promise.all([
       db.from('organisations').select('id, name, verification_tier, companies_house_no').eq('kind', 'vendor').order('name'),
-      db.from('verification_claims').select('id, org_id, kind, status, reference, valid_until, notes, created_at').is('subject_user_id', null).order('created_at'),
+      db.from('verification_claims').select('id, org_id, kind, status, reference, valid_until, notes, created_at, evidence_path').is('subject_user_id', null).order('created_at'),
     ])
     return { vendors: must(vendors), claims: must(claims) }
   }, [])
@@ -86,6 +87,7 @@ function AdminVerification() {
                         {c.valid_until ? ` · valid until ${day(c.valid_until)}` : ''}
                         {c.notes ? ` · ${c.notes}` : ''}
                       </p>
+                      {c.evidence_path && <ClaimDocument path={c.evidence_path} className="mt-1" />}
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge value={c.status} />

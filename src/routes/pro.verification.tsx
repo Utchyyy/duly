@@ -1,7 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { ClaimDocument } from '#/components/ClaimDocument'
 import { Badge, ErrorNote, Field, Loading, Section, Table } from '#/components/ui'
+import { CLAIM_FILE_ACCEPT } from '#/lib/claimEvidence'
+import { attachClaimDocument, removeClaimDocument } from '#/lib/claimEvidenceClient'
 import type { Database } from '#/lib/database.types'
 import { day, label, must, useLoad } from '#/lib/format'
 import { supabase } from '#/lib/supabase'
@@ -29,7 +32,7 @@ function ProVerification() {
   const { data, error, reload } = useLoad(async () => {
     const db = supabase()
     const [claims, org, reviews] = await Promise.all([
-      db.from('verification_claims').select('id, kind, status, reference, valid_until, notes, created_at').eq('org_id', vendor.id).is('subject_user_id', null).order('created_at'),
+      db.from('verification_claims').select('id, kind, status, reference, valid_until, notes, created_at, evidence_path').eq('org_id', vendor.id).is('subject_user_id', null).order('created_at'),
       db.from('organisations').select('verification_tier, companies_house_no').eq('id', vendor.id).single(),
       // What each Enterprise you work for said about these claims (row security shows you only decisions on your own).
       db.from('enterprise_claim_reviews').select('claim_id, decision, note, reviewed_at, enterprise:organisations!enterprise_claim_reviews_enterprise_org_id_fkey(name)').order('reviewed_at'),
@@ -41,6 +44,10 @@ function ProVerification() {
   const [reference, setReference] = useState('')
   const [validUntil, setValidUntil] = useState('')
   const [notes, setNotes] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [fileKey, setFileKey] = useState(0)
+  const [rowBusy, setRowBusy] = useState<string | null>(null)
+  const [rowError, setRowError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -48,14 +55,41 @@ function ProVerification() {
     e.preventDefault()
     setBusy(true)
     setFormError(null)
-    const { error: err } = await supabase()
+    const { data: created, error: err } = await supabase()
       .from('verification_claims')
       .insert({ org_id: vendor.id, kind, reference: reference.trim(), valid_until: validUntil || null, notes: notes.trim() || null, status: 'pending' })
+      .select('id')
+      .single()
+    if (err || !created) {
+      setBusy(false)
+      return setFormError(err?.message ?? 'The claim could not be saved.')
+    }
+    // The claim is saved first; if the document then fails, the claim stands and the vendor can attach it again from the list.
+    const fileProblem = file ? await attachClaimDocument(vendor.id, created.id, file) : null
     setBusy(false)
-    if (err) return setFormError(err.message)
+    if (fileProblem) setFormError(`Your claim was saved, but the document was not attached. ${fileProblem}`)
     setReference('')
     setValidUntil('')
     setNotes('')
+    setFile(null)
+    setFileKey((k) => k + 1)
+    reload()
+  }
+
+  async function attach(claimId: string, picked: File | undefined, previous: string | null) {
+    if (!picked) return
+    setRowBusy(claimId)
+    setRowError(null)
+    setRowError(await attachClaimDocument(vendor.id, claimId, picked, previous))
+    setRowBusy(null)
+    reload()
+  }
+
+  async function remove(claimId: string, path: string) {
+    setRowBusy(claimId)
+    setRowError(null)
+    setRowError(await removeClaimDocument(claimId, path))
+    setRowBusy(null)
     reload()
   }
 
@@ -71,8 +105,9 @@ function ProVerification() {
           Verified badges show to clients, and many clients only see verified vendors.
         </p>
       </div>
+      <ErrorNote message={rowError} />
       <Section title="What you've sent">
-        <Table head={['Check', 'Reference', 'Valid until', 'Status', 'Your Enterprises']}>
+        <Table head={['Check', 'Reference', 'Valid until', 'Status', 'Document', 'Your Enterprises']}>
           {data.claims.map((c) => (
             <tr key={c.id}>
               <td>{kinds.find((k) => k.value === c.kind)?.text ?? label(c.kind)}</td>
@@ -80,6 +115,22 @@ function ProVerification() {
               <td>{day(c.valid_until)}</td>
               <td>
                 <Badge value={c.status} />
+              </td>
+              <td className="space-y-1">
+                {c.evidence_path && <ClaimDocument path={c.evidence_path} />}
+                {(c.status === 'pending' || c.status === 'self_declared') && (
+                  <span className="flex flex-wrap gap-2">
+                    <label className="btn btn-ghost cursor-pointer text-sm">
+                      {c.evidence_path ? 'Replace' : 'Attach a document'}
+                      <input type="file" className="sr-only" accept={CLAIM_FILE_ACCEPT} disabled={rowBusy === c.id} onChange={(e) => { void attach(c.id, e.target.files?.[0], c.evidence_path); e.target.value = '' }} />
+                    </label>
+                    {c.evidence_path && (
+                      <button type="button" className="btn btn-ghost text-sm" disabled={rowBusy === c.id} onClick={() => void remove(c.id, c.evidence_path!)}>
+                        Remove
+                      </button>
+                    )}
+                  </span>
+                )}
               </td>
               <td className="space-y-1">
                 {data.reviews
@@ -95,7 +146,7 @@ function ProVerification() {
           ))}
           {data.claims.length === 0 && (
             <tr>
-              <td colSpan={5} className="text-ink-2">
+              <td colSpan={6} className="text-ink-2">
                 Nothing yet. Start with Companies House and insurance.
               </td>
             </tr>
@@ -118,6 +169,9 @@ function ProVerification() {
         </Field>
         <Field label="Valid until (if it expires)" htmlFor="until">
           <input id="until" type="date" className="field" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+        </Field>
+        <Field label="Document (optional)" htmlFor="doc" hint="The certificate or letter behind it: a PDF or photo, up to 10 MB. The people who check it can open it.">
+          <input key={fileKey} id="doc" type="file" className="field py-2" accept={CLAIM_FILE_ACCEPT} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </Field>
         <Field label="Notes for Duly" htmlFor="notes">
           <textarea id="notes" className="field min-h-[72px] py-2" value={notes} onChange={(e) => setNotes(e.target.value)} />
